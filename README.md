@@ -1,6 +1,6 @@
 <h1 align="center">
   <a href="https://github.com/orangebeard-io/java-client">
-    <img src="https://raw.githubusercontent.com/orangebeard-io/java-client/master/.github/logo.png" alt="Orangebeard.io Java Client" height="200">
+    <img src="https://raw.githubusercontent.com/orangebeard-io/java-client/master/.github/logo.svg" alt="Orangebeard.io Java Client" height="200">
   </a>
   <br>Orangebeard.io Java Client<br>
 </h1>
