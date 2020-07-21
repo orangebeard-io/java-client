@@ -1,11 +1,11 @@
 <h1 align="center">
-  <a href="https://github.com/orangebeard-io/junit5-listener">
-    <img src="https://raw.githubusercontent.com/orangebeard-io/junit5-listener/master/.github/logo.png" alt="Orangebeard.io JUnit5 Listener" height="200">
+  <a href="https://github.com/orangebeard-io/java-client">
+    <img src="https://raw.githubusercontent.com/orangebeard-io/java-client/master/.github/logo.svg" alt="Orangebeard.io Java Client" height="200">
   </a>
   <br>Orangebeard.io Java Client<br>
 </h1>
 
-<h4 align="center">Orangebeard listener for the Java <a href="https://junit.org/junit5/" target="_blank" rel="noopener">JUnit</a> test framework.</h4>
+<h4 align="center">Orangebeard Java client for Java based Orangebeard Listeners.</h4>
 
 <p align="center">
   <a href="https://repo.maven.apache.org/maven2/io/orangebeard/java-client/">
