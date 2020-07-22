@@ -42,7 +42,7 @@ jobs:
       - name: Unsnapshot version
         run: |
           mvn versions:set -DremoveSnapshot
-          VERSION=$(mvn $MAVEN_CLI_OPTS help:evaluate -Dexpression=project.version -q -DforceStdout)
+          ::set-env VERSION=(mvn $MAVEN_CLI_OPTS help:evaluate -Dexpression=project.version -q -DforceStdout)
 #      - name: Publish to GitHub Packages
 #        run: mvn clean -P github-release -DskipTests deploy
 #        env:
@@ -54,8 +54,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: $VERSION
-          release_name: Release Orangebeard Java Client $VERSION
+          tag_name: ${{ env.VERSION }}
+          release_name: Release Orangebeard Java Client ${{ env.VERSION }}
           body: "Release Orangebeard Java Client $VERSION\n${{ github.ref }}"
           draft: false
           prerelease: false
