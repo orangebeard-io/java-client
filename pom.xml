@@ -236,7 +236,7 @@
                 <repository>
                     <id>github</id>
                     <name>Github Repository</name>
-                    <url>https://github.com/orangebeard-io/java-client.git</url>
+                    <url>git+https://github.com/orangebeard-io/java-client.git</url>
                 </repository>
             </distributionManagement>
         </profile>
