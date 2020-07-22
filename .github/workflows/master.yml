@@ -30,19 +30,40 @@ jobs:
 #          gpg_passphrase: ${{ secrets.gpg_passphrase }}
 #          nexus_username: ${{ secrets.MAVEN_USERNAME }}
 #          nexus_password: ${{ secrets.MAVEN_PASSWORD }}
-  github-release:
+#  github-release:
+#    needs: [maven-release]
+#    runs-on: ubuntu-18.04
+#    steps:
+#      - name: Check out Git repository
+#        uses: actions/checkout@v2
+#      - name: Install Java and Maven
+#        uses: actions/setup-java@v1
+#        with:
+#          java-version: 11
+#
+#      - name: Unsnapshot version
+#        run: mvn versions:set -DremoveSnapshot
+#      - name: Publish to GitHub Packages
+#        run: mvn clean -P github-release -DskipTests deploy
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  update-version:
+    needs: [maven-release, github-release]
     runs-on: ubuntu-18.04
     steps:
-      - name: Check out Git repository
+      - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Configure git
+        run: |
+          git config --global user.email "info@orangebeard.io"
+          git config --global user.name "Orangebeard.io"
       - name: Install Java and Maven
         uses: actions/setup-java@v1
         with:
           java-version: 11
-
-      - name: Unsnapshot version
-        run: mvn versions:set -DremoveSnapshot
-      - name: Publish to GitHub Packages
-        run: mvn clean -P github-release -DskipTests deploy
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Update version
+        run: |
+          mvn -B release:update-versions -DautoVersionSubmodules=true
+          git add pom.xml
+          git commit -m "Update version"
+          git push origin master
