@@ -235,8 +235,8 @@
             <distributionManagement>
                 <repository>
                     <id>github</id>
-                    <name>Github Repository</name>
-                    <url>git+https://github.com/orangebeard-io/java-client.git</url>
+                    <name>GitHub OWNER Apache Maven Packages</name>
+                    <url>https://maven.pkg.github.com/orangebeard-io/java-client</url>
                 </repository>
             </distributionManagement>
         </profile>

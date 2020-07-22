@@ -42,8 +42,6 @@ jobs:
 
       - name: Unsnapshot version
         run: mvn versions:set -DremoveSnapshot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish to GitHub Packages
         run: mvn clean -P github-release -DskipTests deploy
         env:
