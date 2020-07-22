@@ -57,11 +57,9 @@ jobs:
           tag_name: "${{ env.VERSION }}"
           release_name: "Release Orangebeard Java Client ${{ env.VERSION }}"
           body: |
-            Release Orangebeard Java Client ${{ env.VERSION }}
+            Release Orangebeard Java Client ${{ env.VERSION }}.
 
-            From branch: ${{ github.ref }}
-
-            Changelog:
+            **Changelog:**
             - To be filled...
           draft: false
           prerelease: false
