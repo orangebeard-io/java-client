@@ -46,6 +46,22 @@ jobs:
         run: mvn clean -P github-release -DskipTests deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download changelog for artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: changelog
+      - name: Create Release
+        id: createRelease
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.get-version.outputs.releaseVersion }}
+          release_name: ${{ needs.get-version.outputs.releaseVersion }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
   update-version:
     needs: [maven-release, github-release]
     runs-on: ubuntu-18.04
