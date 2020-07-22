@@ -81,4 +81,4 @@ jobs:
           mvn -B release:update-versions -DautoVersionSubmodules=true
           git add pom.xml
           git commit -m "Update version"
-          git push origin SOJU-524-github-release
+          git push origin master
