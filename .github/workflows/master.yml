@@ -25,7 +25,7 @@ jobs:
 #        uses: samuelmeuli/action-maven-publish@v1
 #        with:
 #          server_id: staging
-#          maven_goals_phases: clean -P release -DskipTests deploy
+#          maven_goals_phases: clean -P maven-release -DskipTests deploy
 #          gpg_private_key: ${{ secrets.gpg_private_key }}
 #          gpg_passphrase: ${{ secrets.gpg_passphrase }}
 #          nexus_username: ${{ secrets.MAVEN_USERNAME }}
@@ -45,6 +45,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish to GitHub Packages
-        run: mvn clean -P release -DskipTests deploy
+        run: mvn clean -P github-release -DskipTests deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
