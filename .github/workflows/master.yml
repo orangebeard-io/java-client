@@ -47,10 +47,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download changelog for artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: changelog
       - name: Create Release
         id: createRelease
         uses: actions/create-release@v1
@@ -59,7 +55,7 @@ jobs:
         with:
           tag_name: v${{ needs.get-version.outputs.releaseVersion }}
           release_name: ${{ needs.get-version.outputs.releaseVersion }}
-          body_path: CHANGELOG.md
+          body: "to be filled out"
           draft: false
           prerelease: false
   update-version:
