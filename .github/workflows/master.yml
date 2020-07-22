@@ -48,7 +48,7 @@ jobs:
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   update-version:
-    needs: [maven-release, github-release]
+  #  needs: [maven-release, github-release]
     runs-on: ubuntu-18.04
     steps:
       - name: Checkout repository
