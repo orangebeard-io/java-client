@@ -6,12 +6,15 @@ on:
       - 'master'
 
 jobs:
-  maven-release:
+  release:
     runs-on: ubuntu-18.04
     steps:
+      - name: Unsnapshot version
+        run: mvn versions:set -DremoveSnapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check out Git repository
         uses: actions/checkout@v2
-
       - name: Install Java and Maven
         uses: actions/setup-java@v1
         with:
@@ -19,19 +22,12 @@ jobs:
 
       - name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1
+        maven_goals_phases: clean -P release -DskipTests deploy
         with:
           gpg_private_key: ${{ secrets.gpg_private_key }}
           gpg_passphrase: ${{ secrets.gpg_passphrase }}
           nexus_username: ${{ secrets.MAVEN_USERNAME }}
           nexus_password: ${{ secrets.MAVEN_PASSWORD }}
-  github-release:
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Java for publishing to GitHub Packages
-        uses: actions/setup-java@v1
-        with:
-          java-version: 11.0.4
       - name: Publish to GitHub Packages
         run: mvn clean -P release -DskipTests deploy
         env:
