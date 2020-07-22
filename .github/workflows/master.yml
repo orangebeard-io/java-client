@@ -18,8 +18,6 @@ jobs:
 
       - name: Unsnapshot version
         run: mvn versions:set -DremoveSnapshot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1
@@ -43,6 +41,7 @@ jobs:
 
       - name: Unsnapshot version
         run: mvn versions:set -DremoveSnapshot
+
       - name: Publish to GitHub Packages
         run: mvn clean -P github-release -DskipTests deploy
         env:
@@ -53,14 +52,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Configure git
-        run: |
-          git config --global user.email "info@orangebeard.io"
-          git config --global user.name "Orangebeard.io"
       - name: Install Java and Maven
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - name: Configure git
+        run: |
+          git config --global user.email "info@orangebeard.io"
+          git config --global user.name "Orangebeard.io"
       - name: Update version
         run: |
           mvn -B release:update-versions -DautoVersionSubmodules=true
