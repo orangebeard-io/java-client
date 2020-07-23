@@ -1,5 +1,6 @@
 package io.orangebeard.client;
 
+import io.orangebeard.client.entity.Attachment;
 import io.orangebeard.client.entity.FinishTestItem;
 import io.orangebeard.client.entity.FinishTestRun;
 import io.orangebeard.client.entity.Log;
@@ -7,12 +8,14 @@ import io.orangebeard.client.entity.Response;
 import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
 
+import java.util.Collections;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import static java.lang.String.format;
@@ -56,6 +59,10 @@ public class OrangebeardClient {
         return null;
     }
 
+    public UUID startSuite(UUID suiteId, StartTestItem testItem) {
+        return suiteId == null ? startSuite(testItem) : startTest(suiteId, testItem);
+    }
+
     public UUID startTest(UUID suiteId, StartTestItem testItem) {
         if (connectionWithOrangebeardIsValid) {
 
@@ -94,10 +101,37 @@ public class OrangebeardClient {
         }
     }
 
+    public void attachment(Attachment attachment) {
+        if (connectionWithOrangebeardIsValid) {
+            HttpEntity<LinkedMultiValueMap<String, Object>> request = multipartLogRequest(attachment);
+            restTemplate.exchange(format("%s/api/v1/%s/log", endpoint, projectName), POST, request, Response.class);
+        } else {
+            LOGGER.warn("The connection with Orangebeard could not be established!");
+        }
+    }
+
     private HttpHeaders getAuthorizationHeaders(String accessToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth((accessToken));
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
+    }
+
+    private HttpEntity<LinkedMultiValueMap<String, Object>> multipartLogRequest(Attachment attachmentLogItem) {
+        LinkedMultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+
+        LinkedMultiValueMap<String, String> filePartHeaders = new LinkedMultiValueMap<>();
+        filePartHeaders.add(HttpHeaders.CONTENT_DISPOSITION, "form-data; name=\"file\"; filename=\"" + attachmentLogItem.getFile().getName() + "\"");
+        filePartHeaders.add(HttpHeaders.CONTENT_TYPE, attachmentLogItem.getFile().getContentType());
+        byte[] fileContents = attachmentLogItem.getFile().getContent();
+
+        HttpEntity<byte[]> filePart = new HttpEntity<>(fileContents, filePartHeaders);
+
+        parts.add("json_request_part", Collections.singletonList(attachmentLogItem));
+        parts.add("file", filePart);
+
+        HttpHeaders headers = getAuthorizationHeaders(uuid.toString());
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        return new HttpEntity<>(parts, headers);
     }
 }
