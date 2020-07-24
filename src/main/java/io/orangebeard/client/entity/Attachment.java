@@ -1,5 +1,7 @@
 package io.orangebeard.client.entity;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -48,5 +50,11 @@ public class Attachment {
         private final byte[] content;
         @JsonIgnore
         private final String contentType;
+
+        public File (java.io.File file) throws IOException {
+            name = file.getName();
+            content = Files.readAllBytes(file.toPath());
+            contentType = Files.probeContentType(file.toPath());
+        }
     }
 }
