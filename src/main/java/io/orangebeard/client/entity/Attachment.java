@@ -18,17 +18,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Attachment {
-    private UUID itemUuid;
     @JsonProperty("launchUuid")
     private UUID testRunUUID;
+    private UUID itemUuid;
 
-    @JsonSerialize(using = DateSerializer.class)
-    private LocalDateTime time;
-    private String message;
     @JsonProperty("level")
     private LogLevel logLevel;
+    private String message;
     @JsonProperty("file")
     private File file;
+    @JsonSerialize(using = DateSerializer.class)
+    private LocalDateTime time;
 
     public Attachment(UUID testRunUUID, UUID testItemUUID, LogLevel logLevel, String fileName, File file) {
         this.file = file;
