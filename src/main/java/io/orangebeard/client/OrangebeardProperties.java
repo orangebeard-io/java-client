@@ -34,12 +34,14 @@ public class OrangebeardProperties {
 
     OrangebeardProperties(String propertyFile) {
         readPropertyFile(propertyFile);
+        readSystemProperties();
         readEnvironmentVariables(".");
         readEnvironmentVariables("_");
     }
 
     public OrangebeardProperties() {
         readPropertyFile(ORANGEBEARD_PROPERTY_FILE);
+        readSystemProperties();
         readEnvironmentVariables(".");
         readEnvironmentVariables("_");
     }
@@ -86,6 +88,17 @@ public class OrangebeardProperties {
         } catch (IOException e) {
             this.propertyFilePresent = false;
         }
+    }
+
+    private void readSystemProperties() {
+        this.endpoint = System.getProperty(ORANGEBEARD_ENDPOINT, this.endpoint);
+        try {
+            this.accessToken = System.getProperty(ORANGEBEARD_ACCESS_TOKEN) != null ? UUID.fromString(System.getProperty(ORANGEBEARD_ACCESS_TOKEN)) : this.accessToken;
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn(System.getProperty(ORANGEBEARD_ACCESS_TOKEN) + " is not a valid UUID!");
+        }
+        this.projectName = System.getProperty(ORANGEBEARD_PROJECT, this.projectName);
+        this.testSetName = System.getProperty(ORANGEBEARD_TESTSET, this.testSetName);
     }
 
     private void readEnvironmentVariables(String separator) {
