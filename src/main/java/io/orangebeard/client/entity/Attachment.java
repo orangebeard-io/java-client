@@ -33,12 +33,12 @@ public class Attachment {
     private LocalDateTime time;
 
     public Attachment(UUID testRunUUID, UUID testItemUUID, LogLevel logLevel, String fileName, File file) {
-        this.file = file;
-        this.itemUuid = testItemUUID;
         this.testRunUUID = testRunUUID;
+        this.itemUuid = testItemUUID;
         this.logLevel = logLevel;
-        this.time = LocalDateTime.now();
         this.message = fileName;
+        this.time = LocalDateTime.now();
+        this.file = file;
     }
 
     @Getter
