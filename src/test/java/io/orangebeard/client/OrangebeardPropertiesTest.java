@@ -31,4 +31,15 @@ class OrangebeardPropertiesTest {
         assertThat(orangebeardProperties.requiredValuesArePresent()).isFalse();
         assertThat(orangebeardProperties.isPropertyFilePresent()).isFalse();
     }
+
+    @Test
+    public void splitting_properties(){
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties");
+
+        assertThat(orangebeardProperties.getAttributes()).containsOnly(
+                new Attribute("key", "value"),
+                new Attribute("value"),
+                new Attribute("test","testsys temslim"));
+    }
+
 }

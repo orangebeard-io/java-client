@@ -129,10 +129,10 @@ public class OrangebeardProperties {
 
         for (String attribute : attributeString.split(";")) {
             if (attribute.contains(":")) {
-                String[] keyValue = attribute.split(":");
-                attributes.add(new Attribute(keyValue[0].trim(), keyValue[1].trim()));
+                String[] keyValue = attribute.split(":",2);
+                attributes.add(new Attribute(keyValue[0], keyValue[1]));
             } else {
-                attributes.add(new Attribute(attribute.trim()));
+                attributes.add(new Attribute(attribute));
             }
         }
         return attributes;
