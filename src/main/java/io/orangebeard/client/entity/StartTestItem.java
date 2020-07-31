@@ -31,12 +31,11 @@ public class StartTestItem {
     private LocalDateTime startTime;
     private Set<Attribute> attributes;
 
-    public StartTestItem(UUID testRunUUID, String name, TestItemType type, String codeRef, Set<Attribute> attributes) {
+    public StartTestItem(UUID testRunUUID, String name, TestItemType type, String description, Set<Attribute> attributes) {
         this.testRunUUID = testRunUUID;
         this.name = name;
         this.type = type;
-        this.codeRef = codeRef;
-        this.description = codeRef;
+        this.description = description;
         this.startTime = LocalDateTime.now();
         this.attributes = attributes;
     }
