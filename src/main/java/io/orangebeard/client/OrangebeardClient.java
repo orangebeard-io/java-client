@@ -14,8 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import static java.lang.String.format;
@@ -23,7 +24,8 @@ import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
-import static org.springframework.http.MediaType.*;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.MULTIPART_FORM_DATA;
 
 public class OrangebeardClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrangebeardClient.class);
@@ -34,7 +36,18 @@ public class OrangebeardClient {
     private boolean connectionWithOrangebeardIsValid;
 
     public OrangebeardClient(String endpoint, UUID uuid, String projectName, boolean connectionWithOrangebeardIsValid) {
-        this.restTemplate = new RestTemplate();
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);
+
+        this.restTemplate = new RestTemplate(factory);
+        this.endpoint = endpoint;
+        this.uuid = uuid;
+        this.projectName = projectName;
+        this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
+    }
+
+    public OrangebeardClient(RestTemplate restTemplate, String endpoint, UUID uuid, String projectName, boolean connectionWithOrangebeardIsValid) {
+        this.restTemplate = restTemplate;
         this.endpoint = endpoint;
         this.uuid = uuid;
         this.projectName = projectName;
@@ -88,8 +101,12 @@ public class OrangebeardClient {
 
     public void log(Log log) {
         if (connectionWithOrangebeardIsValid) {
-            HttpEntity<Log> request = new HttpEntity<>(log, getAuthorizationHeaders(uuid.toString()));
-            restTemplate.exchange(format("%s/api/v1/%s/log", endpoint, projectName), POST, request, Response.class);
+            try {
+                HttpEntity<Log> request = new HttpEntity<>(log, getAuthorizationHeaders(uuid.toString()));
+                restTemplate.exchange(format("%s/api/v1/%s/log", endpoint, projectName), POST, request, Response.class);
+            } catch (ResourceAccessException e){
+                LOGGER.error("Log cannot be reported to Orangebeard. Uuid=[{}]; loglevel=[{}]; message=[{}]", log.getItemUuid(), log.getLogLevel(), log.getMessage(), e);
+            }
         } else {
             LOGGER.warn("The connection with Orangebeard could not be established!");
         }
