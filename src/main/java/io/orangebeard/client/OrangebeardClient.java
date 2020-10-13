@@ -58,7 +58,7 @@ public class OrangebeardClient {
         if (connectionWithOrangebeardIsValid) {
             try {
                 HttpEntity<StartTestRun> request = new HttpEntity<>(testRun, getAuthorizationHeaders(uuid.toString()));
-                return restTemplate.exchange(format("%s/api/v1/%s/launch", endpoint, projectName), POST, request, Response.class).getBody().getId();
+                return restTemplate.exchange(format("%s/listener/v1/%s/launch", endpoint, projectName), POST, request, Response.class).getBody().getId();
             } catch (Exception e) {
                 LOGGER.error("The connection with Orangebeard could not be established! Check the properties and try again!");
                 connectionWithOrangebeardIsValid = false;
@@ -71,9 +71,9 @@ public class OrangebeardClient {
         if (connectionWithOrangebeardIsValid) {
             HttpEntity<StartTestItem> request = new HttpEntity<>(testItem, getAuthorizationHeaders(uuid.toString()));
             if (suiteId == null) {
-                return restTemplate.exchange(format("%s/api/v1/%s/item", endpoint, projectName), POST, request, Response.class).getBody().getId();
+                return restTemplate.exchange(format("%s/listener/v1/%s/item", endpoint, projectName), POST, request, Response.class).getBody().getId();
             } else {
-                return restTemplate.exchange(format("%s/api/v1/%s/item/%s", endpoint, projectName, suiteId), POST, request, Response.class).getBody().getId();
+                return restTemplate.exchange(format("%s/listener/v1/%s/item/%s", endpoint, projectName, suiteId), POST, request, Response.class).getBody().getId();
             }
         } else {
             LOGGER.warn("The connection with Orangebeard could not be established!");
@@ -84,7 +84,7 @@ public class OrangebeardClient {
     public void finishTestItem(UUID itemId, FinishTestItem finishTestItem) {
         if (connectionWithOrangebeardIsValid) {
             HttpEntity<FinishTestItem> request = new HttpEntity<>(finishTestItem, getAuthorizationHeaders(uuid.toString()));
-            restTemplate.exchange(format("%s/api/v1/%s/item/%s", endpoint, projectName, itemId), PUT, request, Response.class);
+            restTemplate.exchange(format("%s/listener/v1/%s/item/%s", endpoint, projectName, itemId), PUT, request, Response.class);
         } else {
             LOGGER.warn("The connection with Orangebeard could not be established!");
         }
@@ -93,7 +93,7 @@ public class OrangebeardClient {
     public void finishTestRun(UUID testRunUUID, FinishTestRun finishTestRun) {
         if (connectionWithOrangebeardIsValid) {
             HttpEntity<FinishTestRun> request = new HttpEntity<>(finishTestRun, getAuthorizationHeaders(uuid.toString()));
-            restTemplate.exchange(format("%s/api/v1/%s/launch/%s/finish", endpoint, projectName, testRunUUID), PUT, request, Response.class);
+            restTemplate.exchange(format("%s/listener/v1/%s/launch/%s/finish", endpoint, projectName, testRunUUID), PUT, request, Response.class);
         } else {
             LOGGER.warn("The connection with Orangebeard could not be established!");
         }
@@ -103,7 +103,7 @@ public class OrangebeardClient {
         if (connectionWithOrangebeardIsValid) {
             try {
                 HttpEntity<Log> request = new HttpEntity<>(log, getAuthorizationHeaders(uuid.toString()));
-                restTemplate.exchange(format("%s/api/v1/%s/log", endpoint, projectName), POST, request, Response.class);
+                restTemplate.exchange(format("%s/listener/v1/%s/log", endpoint, projectName), POST, request, Response.class);
             } catch (ResourceAccessException e){
                 LOGGER.error("Log cannot be reported to Orangebeard. Uuid=[{}]; loglevel=[{}]; message=[{}]", log.getItemUuid(), log.getLogLevel(), log.getMessage(), e);
             }
@@ -115,7 +115,7 @@ public class OrangebeardClient {
     public void sendAttachment(Attachment attachment) {
         if (connectionWithOrangebeardIsValid) {
             HttpEntity<LinkedMultiValueMap<String, Object>> request = getMultipartLogRequest(attachment);
-            restTemplate.exchange(format("%s/api/v1/%s/log", endpoint, projectName), POST, request, Response.class);
+            restTemplate.exchange(format("%s/listener/v1/%s/log", endpoint, projectName), POST, request, Response.class);
         } else {
             LOGGER.warn("The connection with Orangebeard could not be established!");
         }

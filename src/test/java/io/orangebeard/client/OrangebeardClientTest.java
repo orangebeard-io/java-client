@@ -31,7 +31,7 @@ class OrangebeardClientTest {
 
         orangebeardClient.log(Log.builder().build());
 
-        verify(restTemplate, times(1)).exchange(eq("http://localhost:8080/api/v1/project/log"), eq(POST), any(), eq(Response.class));
+        verify(restTemplate, times(1)).exchange(eq("http://localhost:8080/listener/v1/project/log"), eq(POST), any(), eq(Response.class));
 
     }
 
@@ -41,12 +41,12 @@ class OrangebeardClientTest {
 
         orangebeardClient.log(Log.builder().build());
 
-        verify(restTemplate, times(0)).exchange(eq("http://localhost:8080/api/v1/project/log"), eq(POST), any(), eq(Response.class));
+        verify(restTemplate, times(0)).exchange(eq("http://localhost:8080/listener/v1/project/log"), eq(POST), any(), eq(Response.class));
     }
 
     @Test
     public void when_the_connection_throws_a_timeout_exception_this_is_properly_handled(){
-        when(restTemplate.exchange(eq("http://localhost:8080/api/v1/project/log"), eq(POST), any(), eq(Response.class))).thenThrow(new ResourceAccessException("error!"));
+        when(restTemplate.exchange(eq("http://localhost:8080/listener/v1/project/log"), eq(POST), any(), eq(Response.class))).thenThrow(new ResourceAccessException("error!"));
 
         OrangebeardClient orangebeardClient = new OrangebeardClient(restTemplate, "http://localhost:8080", UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534"), "project", true);
 
