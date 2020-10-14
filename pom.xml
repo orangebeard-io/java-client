@@ -4,11 +4,11 @@
 
     <groupId>io.orangebeard</groupId>
     <artifactId>java-client</artifactId>
-    <version>1.1.0-BETA</version>
+    <version>1.1.0-BETA-2</version>
 
     <url>https://github.com/orangebeard-io/java-client</url>
     <name>Orangebeard.io Java Client</name>
-    <description>Orangebeard Java Client, to be used in Orangebaerd Java Listeners</description>
+    <description>Orangebeard Java Client, to be used in Orangebeard Java Listeners</description>
 
     <developers>
         <developer>
