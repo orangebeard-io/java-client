@@ -2,15 +2,15 @@ package io.orangebeard.client;
 
 import io.orangebeard.client.entity.Attribute;
 
+import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.orangebeard.client.PropertyNames.ORANGEBEARD_ACCESS_TOKEN;
 import static io.orangebeard.client.PropertyNames.ORANGEBEARD_ATTRIBUTES;
@@ -118,6 +118,9 @@ public class OrangebeardProperties {
         if (getenv(ORANGEBEARD_TESTSET.replace(".", separator)) != null) {
             this.testSetName = getenv(ORANGEBEARD_TESTSET.replace(".", separator));
         }
+        if (getenv(ORANGEBEARD_ATTRIBUTES.replace(".", separator)) != null) {
+            this.attributes.addAll(extractAttributes(getenv(ORANGEBEARD_ATTRIBUTES.replace(".", separator))));
+        }
     }
 
     private Set<Attribute> extractAttributes(String attributeString) {
@@ -129,7 +132,7 @@ public class OrangebeardProperties {
 
         for (String attribute : attributeString.split(";")) {
             if (attribute.contains(":")) {
-                String[] keyValue = attribute.split(":",2);
+                String[] keyValue = attribute.split(":", 2);
                 attributes.add(new Attribute(keyValue[0], keyValue[1]));
             } else {
                 attributes.add(new Attribute(attribute));
