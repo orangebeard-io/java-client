@@ -3,7 +3,6 @@ package io.orangebeard.client;
 import io.orangebeard.client.entity.Attribute;
 
 import org.junit.jupiter.api.Test;
-
 import java.util.UUID;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
@@ -56,5 +55,31 @@ class OrangebeardPropertiesTest {
                             new Attribute("env", "value"),
                             new Attribute("piet", "pietersen"));
                 });
+    }
+
+    @Test
+    public void reading_attributes_from_system_properties() {
+        System.setProperty("orangebeard.attributes", "env:value;piet :pietersen ;");
+
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties");
+        assertThat(orangebeardProperties.getAttributes()).containsOnly(
+                new Attribute("key", "value"),
+                new Attribute("value"),
+                new Attribute("test", "testsys temslim"),
+                new Attribute("env", "value"),
+                new Attribute("piet", "pietersen"));
+        System.clearProperty("orangebeard.attributes");
+    }
+
+    @Test
+    public void reading_attributes_from_null_system_properties() {
+        System.setProperty("orangebeard.attributes", "");
+
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties");
+        assertThat(orangebeardProperties.getAttributes()).containsOnly(
+                new Attribute("key", "value"),
+                new Attribute("value"),
+                new Attribute("test", "testsys temslim"));
+        System.clearProperty("orangebeard.attributes");
     }
 }

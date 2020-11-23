@@ -38,6 +38,6 @@ Add the dependency to your pom:
 <dependency>
     <groupId>io.orangebeard</groupId>
     <artifactId>java-client</artifactId>
-    <version>1.0.0</version>
+    <version>version</version>
 </dependency>
 ```
