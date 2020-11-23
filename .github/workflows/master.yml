@@ -54,10 +54,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: "${{ env.VERSION }}"
-          release_name: "Release Orangebeard Java Client ${{ env.VERSION }}"
+          tag_name: $VERSION
+          release_name: "Release Orangebeard Java Client $VERSION"
           body: |
-            Release Orangebeard Java Client ${{ env.VERSION }}.
+            Release Orangebeard Java Client $VERSION.
 
             **Changelog:**
             - To be filled...
