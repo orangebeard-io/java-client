@@ -99,6 +99,8 @@ public class OrangebeardProperties {
         }
         this.projectName = System.getProperty(ORANGEBEARD_PROJECT, this.projectName);
         this.testSetName = System.getProperty(ORANGEBEARD_TESTSET, this.testSetName);
+
+        this.attributes.addAll(extractAttributes(System.getProperty(ORANGEBEARD_ATTRIBUTES, null)));
     }
 
     private void readEnvironmentVariables(String separator) {
@@ -126,16 +128,16 @@ public class OrangebeardProperties {
     private Set<Attribute> extractAttributes(String attributeString) {
         Set<Attribute> attributes = new HashSet<>();
 
-        if (attributeString == null) {
+        if (attributeString == null || attributeString.equals("")) {
             return attributes;
         }
 
         for (String attribute : attributeString.split(";")) {
             if (attribute.contains(":")) {
-                String[] keyValue = attribute.split(":", 2);
-                attributes.add(new Attribute(keyValue[0], keyValue[1]));
+                String[] keyValue = attribute.trim().split(":", 2);
+                attributes.add(new Attribute(keyValue[0].trim(), keyValue[1].trim()));
             } else {
-                attributes.add(new Attribute(attribute));
+                attributes.add(new Attribute(attribute.trim()));
             }
         }
         return attributes;
