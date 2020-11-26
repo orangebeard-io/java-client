@@ -5,6 +5,7 @@ import io.orangebeard.client.entity.Attribute;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -104,38 +105,43 @@ public class OrangebeardProperties {
     }
 
     private void readEnvironmentVariables(String separator) {
-        if (getenv(ORANGEBEARD_ENDPOINT.replace(".", separator)) != null) {
-            this.endpoint = getenv(ORANGEBEARD_ENDPOINT.replace(".", separator));
+        final String orangebeardEndpointEnvValue = getenv(ORANGEBEARD_ENDPOINT.replace(".", separator));
+        if (orangebeardEndpointEnvValue != null) {
+            this.endpoint = orangebeardEndpointEnvValue;
         }
-        if (getenv(ORANGEBEARD_ACCESS_TOKEN.replace(".", separator)) != null) {
+        final String orangebeardAccessTokenEnvValue = getenv(ORANGEBEARD_ACCESS_TOKEN.replace(".", separator));
+        if (orangebeardAccessTokenEnvValue != null) {
             try {
-                this.accessToken = UUID.fromString(getenv(ORANGEBEARD_ACCESS_TOKEN.replace(".", separator)));
+                this.accessToken = UUID.fromString(orangebeardAccessTokenEnvValue);
             } catch (IllegalArgumentException e) {
-                LOGGER.warn(ORANGEBEARD_ACCESS_TOKEN.replace(".", separator) + " is not a valid UUID!");
+                LOGGER.warn("{} is not a valid UUID!", orangebeardAccessTokenEnvValue);
             }
         }
-        if (getenv(ORANGEBEARD_PROJECT.replace(".", separator)) != null) {
-            this.projectName = getenv(ORANGEBEARD_PROJECT.replace(".", separator));
+        final String orangebeardProjectEnvValue = getenv(ORANGEBEARD_PROJECT.replace(".", separator));
+        if (orangebeardProjectEnvValue != null) {
+            this.projectName = orangebeardProjectEnvValue;
         }
-        if (getenv(ORANGEBEARD_TESTSET.replace(".", separator)) != null) {
-            this.testSetName = getenv(ORANGEBEARD_TESTSET.replace(".", separator));
+        final String orangebeardTestsetEnvValue = getenv(ORANGEBEARD_TESTSET.replace(".", separator));
+        if (orangebeardTestsetEnvValue != null) {
+            this.testSetName = orangebeardTestsetEnvValue;
         }
-        if (getenv(ORANGEBEARD_ATTRIBUTES.replace(".", separator)) != null) {
-            this.attributes.addAll(extractAttributes(getenv(ORANGEBEARD_ATTRIBUTES.replace(".", separator))));
+        final String orangebeardAttributesEnvValue = getenv(ORANGEBEARD_ATTRIBUTES.replace(".", separator));
+        if (orangebeardAttributesEnvValue != null) {
+            this.attributes.addAll(extractAttributes(orangebeardAttributesEnvValue));
         }
     }
 
     private Set<Attribute> extractAttributes(String attributeString) {
         Set<Attribute> attributes = new HashSet<>();
 
-        if (attributeString == null || attributeString.equals("")) {
+        if (attributeString == null || attributeString.isEmpty()) {
             return attributes;
         }
 
         for (String attribute : attributeString.split(";")) {
             if (attribute.contains(":")) {
-                String[] keyValue = attribute.trim().split(":", 2);
-                attributes.add(new Attribute(keyValue[0].trim(), keyValue[1].trim()));
+                String[] keyValuePair = attribute.trim().split(":", 2);
+                attributes.add(new Attribute(keyValuePair[0].trim(), keyValuePair[1].trim()));
             } else {
                 attributes.add(new Attribute(attribute.trim()));
             }
