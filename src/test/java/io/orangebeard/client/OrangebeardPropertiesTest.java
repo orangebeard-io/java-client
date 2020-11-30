@@ -11,21 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OrangebeardPropertiesTest {
 
     @Test
-    public void property_file_is_read_correctly_with_default_constructor() {
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties();
-
-        assertThat(orangebeardProperties.requiredValuesArePresent()).isTrue();
-        assertThat(orangebeardProperties.isPropertyFilePresent()).isTrue();
-
-        assertThat(orangebeardProperties.getEndpoint()).isEqualTo("https://company.orangebeard.app");
-        assertThat(orangebeardProperties.getAccessToken()).isEqualTo(UUID.fromString("043584a0-8081-4270-a32a-ad79ead2dc34"));
-        assertThat(orangebeardProperties.getTestSetName()).isEqualTo("piet_DEFAULT_CONSTRUCTOR");
-        assertThat(orangebeardProperties.getProjectName()).isEqualTo("piet_DEFAULT_CONSTRUCTOR");
-        assertThat(orangebeardProperties.getDescription()).isEqualTo("My awesome testrun");
-        assertThat(orangebeardProperties.getAttributes()).containsOnly(new Attribute("key", "value"), new Attribute("value"));
-    }
-
-    @Test
     public void property_file_is_read_correctly_with_specified_filename() {
         OrangebeardProperties orangebeardProperties = new OrangebeardProperties("orangebeardpropertiestest.properties");
 
@@ -106,12 +91,6 @@ class OrangebeardPropertiesTest {
         assertThat(orangebeardProperties.getProjectName()).isEqualTo("piet_personal");
 
         System.clearProperty("orangebeard.attributes");
-    }
-
-    @Test
-    public void checkPropertiesArePresent_happy() {
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties();
-        orangebeardProperties.checkPropertiesArePresent();
     }
 
     @Test
