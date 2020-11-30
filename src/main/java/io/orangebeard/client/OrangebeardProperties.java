@@ -2,49 +2,51 @@ package io.orangebeard.client;
 
 import io.orangebeard.client.entity.Attribute;
 
-import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.lang.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import lombok.Getter;
+import lombok.ToString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static io.orangebeard.client.PropertyNames.ORANGEBEARD_ACCESS_TOKEN;
-import static io.orangebeard.client.PropertyNames.ORANGEBEARD_ATTRIBUTES;
-import static io.orangebeard.client.PropertyNames.ORANGEBEARD_DESCRIPTION;
-import static io.orangebeard.client.PropertyNames.ORANGEBEARD_ENDPOINT;
-import static io.orangebeard.client.PropertyNames.ORANGEBEARD_PROJECT;
-import static io.orangebeard.client.PropertyNames.ORANGEBEARD_PROPERTY_FILE;
-import static io.orangebeard.client.PropertyNames.ORANGEBEARD_TESTSET;
-import static java.lang.System.getenv;
+import static io.orangebeard.client.OrangebeardProperty.ACCESS_TOKEN;
+import static io.orangebeard.client.OrangebeardProperty.DESCRIPTION;
+import static io.orangebeard.client.OrangebeardProperty.ENDPOINT;
+import static io.orangebeard.client.OrangebeardProperty.PROJECT;
+import static io.orangebeard.client.OrangebeardProperty.TESTSET;
 
+@ToString
 @Getter
 public class OrangebeardProperties {
+    private static final String ORANGEBEARD_PROPERTY_FILE = "orangebeard.properties";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(OrangebeardProperties.class);
     private String endpoint;
     private UUID accessToken;
     private String projectName;
     private String testSetName;
     private String description;
-    private Set<Attribute> attributes;
+    private Set<Attribute> attributes = new HashSet<>();
     private boolean propertyFilePresent;
+
+    private enum PropertyNameStyle {
+        DOT, UNDERSCORE
+    }
 
     OrangebeardProperties(String propertyFile) {
         readPropertyFile(propertyFile);
         readSystemProperties();
-        readEnvironmentVariables(".");
-        readEnvironmentVariables("_");
+        readEnvironmentVariables(PropertyNameStyle.DOT);
+        readEnvironmentVariables(PropertyNameStyle.UNDERSCORE);
     }
 
     public OrangebeardProperties() {
-        readPropertyFile(ORANGEBEARD_PROPERTY_FILE);
-        readSystemProperties();
-        readEnvironmentVariables(".");
-        readEnvironmentVariables("_");
+        this(ORANGEBEARD_PROPERTY_FILE);
     }
 
     public boolean requiredValuesArePresent() {
@@ -61,10 +63,10 @@ public class OrangebeardProperties {
     }
 
     private String requiredPropertiesToString() {
-        return ORANGEBEARD_ENDPOINT + ": " + endpoint + "\n" +
-                ORANGEBEARD_ACCESS_TOKEN + ": " + (accessToken != null ? "HIDDEN (PRESENT)" : "null\n") +
-                ORANGEBEARD_PROJECT + ": " + projectName + "\n" +
-                ORANGEBEARD_TESTSET + ": " + testSetName + "\n";
+        return ENDPOINT.getPropertyName() + ": " + endpoint + "\n" +
+                ACCESS_TOKEN.getPropertyName() + ": " + (accessToken != null ? "HIDDEN (PRESENT)" : "null\n") +
+                PROJECT.getPropertyName() + ": " + projectName + "\n" +
+                TESTSET.getPropertyName() + ": " + testSetName + "\n";
     }
 
     private void readPropertyFile(String name) {
@@ -76,58 +78,48 @@ public class OrangebeardProperties {
                 properties.load(inputStream);
                 this.propertyFilePresent = true;
             }
-            this.endpoint = properties.getProperty(ORANGEBEARD_ENDPOINT);
-            try {
-                this.accessToken = properties.getProperty(ORANGEBEARD_ACCESS_TOKEN) != null ? UUID.fromString(properties.getProperty(ORANGEBEARD_ACCESS_TOKEN)) : null;
-            } catch (IllegalArgumentException e) {
-                LOGGER.warn(ORANGEBEARD_ACCESS_TOKEN + " is not a valid UUID!");
-            }
-            this.projectName = properties.getProperty(ORANGEBEARD_PROJECT);
-            this.testSetName = properties.getProperty(ORANGEBEARD_TESTSET);
-            this.description = properties.getProperty(ORANGEBEARD_DESCRIPTION);
-            this.attributes = extractAttributes(properties.getProperty(ORANGEBEARD_ATTRIBUTES));
+            readPropertiesWith(properties::getProperty);
         } catch (IOException e) {
             this.propertyFilePresent = false;
         }
     }
 
     private void readSystemProperties() {
-        this.endpoint = System.getProperty(ORANGEBEARD_ENDPOINT, this.endpoint);
-        try {
-            this.accessToken = System.getProperty(ORANGEBEARD_ACCESS_TOKEN) != null ? UUID.fromString(System.getProperty(ORANGEBEARD_ACCESS_TOKEN)) : this.accessToken;
-        } catch (IllegalArgumentException e) {
-            LOGGER.warn(System.getProperty(ORANGEBEARD_ACCESS_TOKEN) + " is not a valid UUID!");
-        }
-        this.projectName = System.getProperty(ORANGEBEARD_PROJECT, this.projectName);
-        this.testSetName = System.getProperty(ORANGEBEARD_TESTSET, this.testSetName);
-
-        this.attributes.addAll(extractAttributes(System.getProperty(ORANGEBEARD_ATTRIBUTES, null)));
+        readPropertiesWith(System::getProperty);
     }
 
-    private void readEnvironmentVariables(String separator) {
-        final String orangebeardEndpointEnvValue = getenv(ORANGEBEARD_ENDPOINT.replace(".", separator));
-        if (orangebeardEndpointEnvValue != null) {
-            this.endpoint = orangebeardEndpointEnvValue;
+    private void readEnvironmentVariables(PropertyNameStyle style) {
+        if (style == PropertyNameStyle.UNDERSCORE) {
+            readPropertiesWith(n -> System.getenv(n.replace(".", "_")));
+        } else {
+            readPropertiesWith(System::getenv);
         }
-        final String orangebeardAccessTokenEnvValue = getenv(ORANGEBEARD_ACCESS_TOKEN.replace(".", separator));
-        if (orangebeardAccessTokenEnvValue != null) {
-            try {
-                this.accessToken = UUID.fromString(orangebeardAccessTokenEnvValue);
-            } catch (IllegalArgumentException e) {
-                LOGGER.warn("{} is not a valid UUID!", orangebeardAccessTokenEnvValue);
-            }
+    }
+
+    private void readPropertiesWith(Function<String, String> lookupFunc) {
+        this.endpoint = lookupWithDefault(ENDPOINT, lookupFunc, this.endpoint);
+        this.accessToken = lookupUUIDWithDefault(ACCESS_TOKEN, lookupFunc, this.accessToken);
+        this.projectName = lookupWithDefault(PROJECT, lookupFunc, this.projectName);
+        this.testSetName = lookupWithDefault(TESTSET, lookupFunc, this.testSetName);
+        this.description = lookupWithDefault(DESCRIPTION, lookupFunc, this.description);
+        this.attributes.addAll(extractAttributes(lookupFunc.apply(OrangebeardProperty.ATTRIBUTES.getPropertyName())));
+    }
+
+    private String lookupWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, String defaultValue) {
+        String temp = lookupFunc.apply(property.getPropertyName());
+        return temp == null ? defaultValue : temp;
+    }
+
+    private UUID lookupUUIDWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, UUID defaultValue) {
+        String temp = lookupFunc.apply(property.getPropertyName());
+        if (temp == null || temp.isBlank()) {
+            return defaultValue;
         }
-        final String orangebeardProjectEnvValue = getenv(ORANGEBEARD_PROJECT.replace(".", separator));
-        if (orangebeardProjectEnvValue != null) {
-            this.projectName = orangebeardProjectEnvValue;
-        }
-        final String orangebeardTestsetEnvValue = getenv(ORANGEBEARD_TESTSET.replace(".", separator));
-        if (orangebeardTestsetEnvValue != null) {
-            this.testSetName = orangebeardTestsetEnvValue;
-        }
-        final String orangebeardAttributesEnvValue = getenv(ORANGEBEARD_ATTRIBUTES.replace(".", separator));
-        if (orangebeardAttributesEnvValue != null) {
-            this.attributes.addAll(extractAttributes(orangebeardAttributesEnvValue));
+        try {
+            return UUID.fromString(temp);
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn(ACCESS_TOKEN.getPropertyName() + " is not a valid UUID!");
+            return defaultValue;
         }
     }
 
