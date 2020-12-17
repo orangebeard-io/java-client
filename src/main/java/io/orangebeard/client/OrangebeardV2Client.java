@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
@@ -97,7 +98,7 @@ public class OrangebeardV2Client extends AbstractClient {
             try {
                 HttpEntity<Log> request = new HttpEntity<>(log, getAuthorizationHeaders(uuid.toString()));
                 restTemplate.exchange(format("%s/listener/v2/%s/log", endpoint, projectName), POST, request, Response.class);
-            } catch (ResourceAccessException e) {
+            } catch (HttpServerErrorException | ResourceAccessException e) {
                 LOGGER.error("Log cannot be reported to Orangebeard. Uuid=[{}]; loglevel=[{}]; message=[{}]", log.getItemUuid(), log.getLogLevel(), log.getMessage(), e);
             }
         } else {
