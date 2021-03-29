@@ -17,9 +17,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StartTestItem {
-    private String mode = "DEFAULT";
-    private boolean rerun = false;
-    private String rerunOf = null;
     @JsonProperty("launchUuid")
     private UUID testRunUUID;
     private TestItemType type;
