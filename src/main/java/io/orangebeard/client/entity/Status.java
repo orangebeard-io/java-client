@@ -6,7 +6,5 @@ public enum Status {
     FAILED,
     STOPPED, //status for manually stopped launches
     SKIPPED,
-    INTERRUPTED,
-    RESETED, //status for items with deleted descendants
-    CANCELLED
+    TIMED_OUT
 }

@@ -18,11 +18,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StartTestRun {
-    private String mode = "DEFAULT";
-    private boolean rerun = false;
-    private String rerunOf = null;
-    private String uuid = null;
-
     private String name;
     private String description;
     @JsonSerialize(using = DateSerializer.class)

@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class FinishTestItem {
-    private Boolean retry = false;
     @JsonProperty("launchUuid")
     private UUID testRunUUID;
 
