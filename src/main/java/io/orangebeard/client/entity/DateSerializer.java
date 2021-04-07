@@ -11,6 +11,6 @@ class DateSerializer extends JsonSerializer<LocalDateTime> {
 
     @Override
     public void serialize(LocalDateTime value, JsonGenerator jgen, SerializerProvider serializers) throws IOException {
-        jgen.writeRawValue(String.valueOf(value.atZone(ZoneId.systemDefault()).toEpochSecond() * 1000));
+        jgen.writeRawValue(String.valueOf(value.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()));
     }
 }
