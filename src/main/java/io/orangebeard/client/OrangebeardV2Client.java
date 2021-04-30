@@ -7,11 +7,9 @@ import io.orangebeard.client.entity.Log;
 import io.orangebeard.client.entity.Response;
 import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
-
-import java.util.UUID;
-
 import io.orangebeard.client.entity.UpdateTestRun;
 
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -39,7 +37,7 @@ public class OrangebeardV2Client extends AbstractClient {
 
         this.restTemplate = new RestTemplate(factory);
         this.endpoint = endpoint;
-        this.projectName = projectName;
+        this.projectName = projectName.toLowerCase();
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
@@ -47,7 +45,7 @@ public class OrangebeardV2Client extends AbstractClient {
         super(uuid);
         this.restTemplate = restTemplate;
         this.endpoint = endpoint;
-        this.projectName = projectName;
+        this.projectName = projectName.toLowerCase();
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
