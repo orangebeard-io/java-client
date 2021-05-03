@@ -6,12 +6,15 @@ import io.orangebeard.client.entity.FinishTestRun;
 import io.orangebeard.client.entity.Log;
 import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
+import io.orangebeard.client.entity.UpdateTestRun;
 
 import java.util.UUID;
 
 public interface OrangebeardClient {
 
     UUID startTestRun(StartTestRun testRun);
+
+    void updateTestRun(UUID testRunUUID, UpdateTestRun updateTestRun);
 
     UUID startTestItem(UUID suiteId, StartTestItem testItem);
 

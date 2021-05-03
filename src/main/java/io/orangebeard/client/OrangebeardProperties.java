@@ -112,7 +112,7 @@ public class OrangebeardProperties {
 
     private UUID lookupUUIDWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, UUID defaultValue) {
         String temp = lookupFunc.apply(property.getPropertyName());
-        if (temp == null || temp.isBlank()) {
+        if (temp == null || temp.trim().isEmpty()) {
             return defaultValue;
         }
         try {

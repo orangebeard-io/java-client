@@ -7,6 +7,7 @@ import io.orangebeard.client.entity.Log;
 import io.orangebeard.client.entity.Response;
 import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
+import io.orangebeard.client.entity.UpdateTestRun;
 
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -31,12 +32,12 @@ public class OrangebeardV2Client extends AbstractClient {
 
     public OrangebeardV2Client(String endpoint, UUID uuid, String projectName, boolean connectionWithOrangebeardIsValid) {
         super(uuid);
-        var factory = new SimpleClientHttpRequestFactory();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(10000);
 
         this.restTemplate = new RestTemplate(factory);
         this.endpoint = endpoint;
-        this.projectName = projectName;
+        this.projectName = projectName.toLowerCase();
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
@@ -44,7 +45,7 @@ public class OrangebeardV2Client extends AbstractClient {
         super(uuid);
         this.restTemplate = restTemplate;
         this.endpoint = endpoint;
-        this.projectName = projectName;
+        this.projectName = projectName.toLowerCase();
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
@@ -59,6 +60,15 @@ public class OrangebeardV2Client extends AbstractClient {
             }
         }
         return null;
+    }
+
+    public void updateTestRun(UUID testRunUUID, UpdateTestRun updateTestRun) {
+        if (connectionWithOrangebeardIsValid) {
+            HttpEntity<UpdateTestRun> request = new HttpEntity<>(updateTestRun, getAuthorizationHeaders(uuid.toString()));
+            restTemplate.exchange(format("%s/listener/v2/%s/launch/%s/update", endpoint, projectName, testRunUUID), PUT, request, Response.class);
+        } else {
+            LOGGER.warn("The connection with Orangebeard could not be established!");
+        }
     }
 
     public UUID startTestItem(UUID suiteId, StartTestItem testItem) {
