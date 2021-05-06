@@ -36,4 +36,11 @@ public class StartTestItem {
         this.startTime = LocalDateTime.now();
         this.attributes = attributes;
     }
+
+    public StartTestItem(UUID testRunUUID, String name, TestItemType type) {
+        this.testRunUUID = testRunUUID;
+        this.name = name;
+        this.type = type;
+        this.startTime = LocalDateTime.now();
+    }
 }

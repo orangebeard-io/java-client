@@ -29,4 +29,10 @@ public class FinishTestItem {
         this.endTime = LocalDateTime.now();
         this.attributes = attributes;
     }
+
+    public FinishTestItem(UUID testRunUUID, Status status) {
+        this.testRunUUID = testRunUUID;
+        this.status = status;
+        this.endTime = LocalDateTime.now();
+    }
 }
