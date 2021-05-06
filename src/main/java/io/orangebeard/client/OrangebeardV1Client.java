@@ -9,7 +9,6 @@ import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
 import io.orangebeard.client.entity.UpdateTestRun;
 
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -18,6 +17,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.springframework.http.HttpMethod.POST;
@@ -69,6 +69,10 @@ public class OrangebeardV1Client extends AbstractClient {
         } else {
             LOGGER.warn("The connection with Orangebeard could not be established!");
         }
+    }
+
+    public UUID startRootItem(StartTestItem testItem) {
+        return startTestItem(null, testItem);
     }
 
     public UUID startTestItem(UUID suiteId, StartTestItem testItem) {
