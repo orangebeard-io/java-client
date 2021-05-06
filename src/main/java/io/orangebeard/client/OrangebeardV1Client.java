@@ -71,7 +71,7 @@ public class OrangebeardV1Client extends AbstractClient {
         }
     }
 
-    public UUID startTestItem(StartTestItem testItem) {
+    public UUID startRootItem(StartTestItem testItem) {
         return startTestItem(null, testItem);
     }
 
