@@ -33,7 +33,7 @@ public class OrangebeardV2Client extends AbstractClient {
     public OrangebeardV2Client(String endpoint, UUID uuid, String projectName, boolean connectionWithOrangebeardIsValid) {
         super(uuid);
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10000);
+        factory.setConnectTimeout(30000);
 
         this.restTemplate = new RestTemplate(factory);
         this.endpoint = endpoint;
