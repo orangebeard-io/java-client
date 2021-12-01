@@ -7,6 +7,43 @@ on:
 
 jobs:
 
+  github-release:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+      - name: Install Java and Maven
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - name: Unsnapshot version
+        run: mvn versions:set -DremoveSnapshot
+      - id: get-version
+        uses: JActions/maven-version@v1.0.0
+      - name: Publish to GitHub Packages
+        run: mvn clean -P github-release -DskipTests deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create changelog
+        id: changelog
+        uses: dragonraid/changelog-emitter
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        id: createRelease
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get-version.outputs.version }}
+          release_name: "Release Orangebeard Java Client ${{ steps.get-version.outputs.version }}"
+          body: |
+            Release Orangebeard Java Client ${{ steps.get-version.outputs.version }}.
+
+            **Changelog:**
+            ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
   test:
     name: Unit Test
     runs-on: ubuntu-18.04
