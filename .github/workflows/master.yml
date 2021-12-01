@@ -6,27 +6,27 @@ on:
       - 'master'
 
 jobs:
-  maven-release:
-    runs-on: ubuntu-18.04
-    steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v2
-      - name: Install Java and Maven
-        uses: actions/setup-java@v1
-        with:
-          java-version: 8
-      - name: Unsnapshot version
-        run: mvn versions:set -DremoveSnapshot
-
-      - name: Release Maven package
-        uses: samuelmeuli/action-maven-publish@v1
-        with:
-          server_id: staging
-          maven_goals_phases: clean -P maven-release -DskipTests deploy
-          gpg_private_key: ${{ secrets.gpg_private_key }}
-          gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          nexus_username: ${{ secrets.MAVEN_USERNAME }}
-          nexus_password: ${{ secrets.MAVEN_PASSWORD }}
+#  maven-release:
+#    runs-on: ubuntu-18.04
+#    steps:
+#      - name: Check out Git repository
+#        uses: actions/checkout@v2
+#      - name: Install Java and Maven
+#        uses: actions/setup-java@v1
+#        with:
+#          java-version: 8
+#      - name: Unsnapshot version
+#        run: mvn versions:set -DremoveSnapshot
+#
+#      - name: Release Maven package
+#        uses: samuelmeuli/action-maven-publish@v1
+#        with:
+#          server_id: staging
+#          maven_goals_phases: clean -P maven-release -DskipTests deploy
+#          gpg_private_key: ${{ secrets.gpg_private_key }}
+#          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+#          nexus_username: ${{ secrets.MAVEN_USERNAME }}
+#          nexus_password: ${{ secrets.MAVEN_PASSWORD }}
   github-release:
     needs: [ maven-release ]
     runs-on: ubuntu-18.04
@@ -37,8 +37,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
-      - id: get-version
-        uses: jactions/maven-version@v1
+      - name: Maven version
+        uses: JActions/maven-version@v1.0.0
       - name: Publish to GitHub Packages
         run: mvn clean -P github-release -DskipTests deploy
         env:
