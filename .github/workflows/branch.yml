@@ -6,7 +6,6 @@ on:
       - 'master'
 
 jobs:
-
   github-release:
     runs-on: ubuntu-18.04
     steps:
@@ -26,7 +25,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create changelog
         id: changelog
-        uses: dragonraid/changelog-emitter
+        uses: dragonraid/changelog-emitter@v0.3.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
