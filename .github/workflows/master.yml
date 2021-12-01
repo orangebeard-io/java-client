@@ -62,7 +62,7 @@ jobs:
             Release Orangebeard Java Client ${{ steps.get-version.outputs.version }}.
 
             **Changelog:**
-            ${{ steps.changelog.outputs.changes }}
+            ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
   update-version:
