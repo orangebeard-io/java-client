@@ -37,7 +37,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
-      - name: get-version
+      - id: get-version
         uses: JActions/maven-version@v1.0.0
       - name: Publish to GitHub Packages
         run: mvn clean -P github-release -DskipTests deploy
