@@ -59,7 +59,9 @@ jobs:
           draft: false
           prerelease: false
   update-version:
-    needs: [maven-release, github-release]
+    #needs: [maven-release, github-release]
+    needs: [github-release]
+
     runs-on: ubuntu-18.04
     steps:
       - name: Checkout repository
