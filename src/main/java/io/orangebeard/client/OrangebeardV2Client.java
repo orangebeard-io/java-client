@@ -37,7 +37,7 @@ public class OrangebeardV2Client extends AbstractClient {
 
         this.restTemplate = new RestTemplate(factory);
         this.endpoint = endpoint;
-        this.projectName = projectName.toLowerCase();
+        this.projectName = projectName == null ? null : projectName.toLowerCase();
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
@@ -45,7 +45,7 @@ public class OrangebeardV2Client extends AbstractClient {
         super(uuid);
         this.restTemplate = restTemplate;
         this.endpoint = endpoint;
-        this.projectName = projectName.toLowerCase();
+        this.projectName = projectName == null ? null : projectName.toLowerCase();
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
