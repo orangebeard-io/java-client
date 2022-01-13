@@ -27,20 +27,23 @@ public class StartTestItem {
     @JsonSerialize(using = DateSerializer.class)
     private LocalDateTime startTime;
     private Set<Attribute> attributes;
+    private boolean hasStats;
 
-    public StartTestItem(UUID testRunUUID, String name, TestItemType type, String description, Set<Attribute> attributes) {
+    public StartTestItem(UUID testRunUUID, String name, TestItemType type, String description, Set<Attribute> attributes, boolean hasStats) {
         this.testRunUUID = testRunUUID;
         this.name = name;
         this.type = type;
         this.description = description;
         this.startTime = LocalDateTime.now();
         this.attributes = attributes;
+        this.hasStats = hasStats;
     }
 
-    public StartTestItem(UUID testRunUUID, String name, TestItemType type) {
+    public StartTestItem(UUID testRunUUID, String name, TestItemType type, boolean hasStats) {
         this.testRunUUID = testRunUUID;
         this.name = name;
         this.type = type;
         this.startTime = LocalDateTime.now();
+        this.hasStats = hasStats;
     }
 }
