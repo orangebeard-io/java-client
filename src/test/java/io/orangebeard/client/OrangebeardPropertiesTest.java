@@ -24,7 +24,7 @@ class OrangebeardPropertiesTest {
         assertThat(orangebeardProperties.getTestSetName()).isEqualTo("piet_TEST_EXAMPLE");
         assertThat(orangebeardProperties.getProjectName()).isEqualTo("piet_personal");
         assertThat(orangebeardProperties.getDescription()).isEqualTo("My awesome testrun");
-        assertThat(orangebeardProperties.getLogLevel()).isEqualTo(LogLevel.debug);
+        assertThat(orangebeardProperties.getLogLevel()).isEqualTo(LogLevel.warn);
         assertThat(orangebeardProperties.isLogsAtEndOfTest()).isTrue();
         assertThat(orangebeardProperties.getAttributes()).containsOnly(new Attribute("key", "value"), new Attribute("value"));
     }
@@ -66,6 +66,28 @@ class OrangebeardPropertiesTest {
         OrangebeardProperties orangebeardProperties = new OrangebeardProperties("invalidloglevel.properties");
 
         assertThat(orangebeardProperties.getLogLevel()).isEqualTo(LogLevel.info);
+    }
+
+    @Test
+    public void when_loglevel_is_info_debug_logs_are_not_sent() {
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("invalidloglevel.properties");
+
+        assertThat(orangebeardProperties.getLogLevel()).isEqualTo(LogLevel.info);
+        assertThat(orangebeardProperties.logShouldBeDispatchedToOrangebeard(LogLevel.error)).isTrue();
+        assertThat(orangebeardProperties.logShouldBeDispatchedToOrangebeard(LogLevel.warn)).isTrue();
+        assertThat(orangebeardProperties.logShouldBeDispatchedToOrangebeard(LogLevel.info)).isTrue();
+        assertThat(orangebeardProperties.logShouldBeDispatchedToOrangebeard(LogLevel.debug)).isFalse();
+    }
+
+    @Test
+    public void when_the_loglevel_is_warn_a_log_with_level_info_should_not_be_sent() {
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("orangebeardpropertiestest.properties");
+
+        assertThat(orangebeardProperties.getLogLevel()).isEqualTo(LogLevel.warn);
+        assertThat(orangebeardProperties.logShouldBeDispatchedToOrangebeard(LogLevel.error)).isTrue();
+        assertThat(orangebeardProperties.logShouldBeDispatchedToOrangebeard(LogLevel.warn)).isTrue();
+        assertThat(orangebeardProperties.logShouldBeDispatchedToOrangebeard(LogLevel.info)).isFalse();
+        assertThat(orangebeardProperties.logShouldBeDispatchedToOrangebeard(LogLevel.debug)).isFalse();
     }
 
     @Test

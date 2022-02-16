@@ -168,4 +168,27 @@ public class OrangebeardProperties {
         }
         return attributes;
     }
+
+    public boolean logShouldBeDispatchedToOrangebeard(LogLevel individualLogLevel) {
+        int logLevelVal = convertToInt(this.logLevel);
+        int individualLogLevelVal = convertToInt(individualLogLevel);
+        return individualLogLevelVal >= logLevelVal;
+    }
+
+    @SuppressWarnings("DuplicateBranchesInSwitch")
+    private int convertToInt(LogLevel logLevel) {
+        switch (logLevel) {
+            case debug:
+            case trace:
+                return 0;
+            case info:
+                return 1;
+            case warn:
+                return 2;
+            case error:
+            case fatal:
+                return 3;
+        }
+        return 1;
+    }
 }
