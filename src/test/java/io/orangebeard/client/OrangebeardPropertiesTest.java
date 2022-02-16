@@ -1,8 +1,10 @@
 package io.orangebeard.client;
 
 import io.orangebeard.client.entity.Attribute;
+import io.orangebeard.client.entity.LogLevel;
 
 import org.junit.jupiter.api.Test;
+
 import java.util.UUID;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
@@ -22,6 +24,8 @@ class OrangebeardPropertiesTest {
         assertThat(orangebeardProperties.getTestSetName()).isEqualTo("piet_TEST_EXAMPLE");
         assertThat(orangebeardProperties.getProjectName()).isEqualTo("piet_personal");
         assertThat(orangebeardProperties.getDescription()).isEqualTo("My awesome testrun");
+        assertThat(orangebeardProperties.getLogLevel()).isEqualTo(LogLevel.debug);
+        assertThat(orangebeardProperties.isLogsAtEndOfTest()).isTrue();
         assertThat(orangebeardProperties.getAttributes()).containsOnly(new Attribute("key", "value"), new Attribute("value"));
     }
 
@@ -34,7 +38,7 @@ class OrangebeardPropertiesTest {
     }
 
     @Test
-    public void splitting_properties() {
+    public void splitting_attributes() {
         OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties");
 
         assertThat(orangebeardProperties.getAttributes()).containsOnly(
@@ -55,6 +59,20 @@ class OrangebeardPropertiesTest {
                             new Attribute("env", "value"),
                             new Attribute("piet", "pietersen"));
                 });
+    }
+
+    @Test
+    public void when_loglevel_is_invalid_it_is_set_to_info_by_default() {
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("invalidloglevel.properties");
+
+        assertThat(orangebeardProperties.getLogLevel()).isEqualTo(LogLevel.info);
+    }
+
+    @Test
+    public void when_logs_at_end_is_invalid_it_is_set_to_false_by_default() {
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("invalidbooleanlogsatendoftest.properties");
+
+        assertThat(orangebeardProperties.isLogsAtEndOfTest()).isFalse();
     }
 
     @Test

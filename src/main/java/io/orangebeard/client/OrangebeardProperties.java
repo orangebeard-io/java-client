@@ -1,7 +1,12 @@
 package io.orangebeard.client;
 
 import io.orangebeard.client.entity.Attribute;
+import io.orangebeard.client.entity.LogLevel;
 
+import lombok.Getter;
+import lombok.ToString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -9,14 +14,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import lombok.Getter;
-import lombok.ToString;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.orangebeard.client.OrangebeardProperty.ACCESS_TOKEN;
 import static io.orangebeard.client.OrangebeardProperty.DESCRIPTION;
 import static io.orangebeard.client.OrangebeardProperty.ENDPOINT;
+import static io.orangebeard.client.OrangebeardProperty.LOGS_AT_END_OF_TEST;
+import static io.orangebeard.client.OrangebeardProperty.LOG_LEVEL;
 import static io.orangebeard.client.OrangebeardProperty.PROJECT;
 import static io.orangebeard.client.OrangebeardProperty.TESTSET;
 
@@ -31,8 +34,10 @@ public class OrangebeardProperties {
     private String projectName;
     private String testSetName;
     private String description;
-    private Set<Attribute> attributes = new HashSet<>();
+    private final Set<Attribute> attributes = new HashSet<>();
     private boolean propertyFilePresent;
+    private LogLevel logLevel = LogLevel.info;
+    private boolean logsAtEndOfTest = false;
 
     private enum PropertyNameStyle {
         DOT, UNDERSCORE
@@ -45,6 +50,7 @@ public class OrangebeardProperties {
         readEnvironmentVariables(PropertyNameStyle.UNDERSCORE);
     }
 
+    @SuppressWarnings("unused")
     public OrangebeardProperties() {
         this(ORANGEBEARD_PROPERTY_FILE);
     }
@@ -102,7 +108,18 @@ public class OrangebeardProperties {
         this.projectName = lookupWithDefault(PROJECT, lookupFunc, this.projectName);
         this.testSetName = lookupWithDefault(TESTSET, lookupFunc, this.testSetName);
         this.description = lookupWithDefault(DESCRIPTION, lookupFunc, this.description);
+        this.logLevel = lookupLogLevel(lookupFunc);
+        this.logsAtEndOfTest = lookUpBooleanWithDefault(LOGS_AT_END_OF_TEST, lookupFunc, this.logsAtEndOfTest);
         this.attributes.addAll(extractAttributes(lookupFunc.apply(OrangebeardProperty.ATTRIBUTES.getPropertyName())));
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private boolean lookUpBooleanWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, boolean defaultValue) {
+        String temp = lookupFunc.apply(property.getPropertyName());
+        if (temp == null) {
+            return defaultValue;
+        }
+        return Boolean.parseBoolean(temp);
     }
 
     private String lookupWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, String defaultValue) {
@@ -110,6 +127,7 @@ public class OrangebeardProperties {
         return temp == null ? defaultValue : temp;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private UUID lookupUUIDWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, UUID defaultValue) {
         String temp = lookupFunc.apply(property.getPropertyName());
         if (temp == null || temp.trim().isEmpty()) {
@@ -120,6 +138,16 @@ public class OrangebeardProperties {
         } catch (IllegalArgumentException e) {
             LOGGER.warn(ACCESS_TOKEN.getPropertyName() + " is not a valid UUID!");
             return defaultValue;
+        }
+    }
+
+    private LogLevel lookupLogLevel(Function<String, String> lookupFunc) {
+        String logLevel = lookupFunc.apply(LOG_LEVEL.getPropertyName());
+        try {
+            return logLevel == null ? this.logLevel : LogLevel.valueOf(logLevel.toLowerCase());
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn(LOG_LEVEL.getPropertyName() + " is not a valid log level! Choose DEBUG, INFO, WARN or ERROR. INFO is now used by default.");
+            return this.logLevel;
         }
     }
 
