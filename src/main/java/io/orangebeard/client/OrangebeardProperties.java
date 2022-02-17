@@ -43,6 +43,30 @@ public class OrangebeardProperties {
         DOT, UNDERSCORE
     }
 
+    /**
+     * all args constructor in order to allow listeners to read their properties in a custom way.
+     */
+    public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, boolean propertyFilePresent, LogLevel logLevel, boolean logsAtEndOfTest) {
+        this.endpoint = endpoint;
+        this.accessToken = accessToken;
+        this.projectName = projectName;
+        this.testSetName = testSetName;
+        this.description = description;
+        this.propertyFilePresent = propertyFilePresent;
+        this.logLevel = logLevel;
+        this.logsAtEndOfTest = logsAtEndOfTest;
+    }
+
+    /**
+     * Required args constructor in order to allow listeners to read their properties in a custom way.
+     */
+    public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName) {
+        this.endpoint = endpoint;
+        this.accessToken = accessToken;
+        this.projectName = projectName;
+        this.testSetName = testSetName;
+    }
+
     OrangebeardProperties(String propertyFile) {
         readPropertyFile(propertyFile);
         readSystemProperties();
