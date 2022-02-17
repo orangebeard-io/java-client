@@ -128,7 +128,8 @@ public class OrangebeardV1Client extends AbstractClient {
                 HttpEntity<Set<Log>> request = new HttpEntity<>(logs, getAuthorizationHeaders(uuid.toString()));
                 restTemplate.exchange(format("%s/listener/v1/%s/log", endpoint, projectName), POST, request, Response.class);
             } catch (HttpServerErrorException | ResourceAccessException e) {
-                //LOGGER.error("Logs cannot be reported to Orangebeard. Uuid=[{}]; loglevel=[{}]; message=[{}]", logs[0].getItemUuid(), log.getLogLevel(), log.getMessage(), e);
+                Log anyLog = logs.iterator().next();
+                LOGGER.error("Logs cannot be reported to Orangebeard. One of the logs that cannot be reported Uuid=[{}]; loglevel=[{}]; message=[{}]", anyLog.getItemUuid(), anyLog.getLogLevel(), anyLog.getMessage(), e);
             }
         } else {
             LOGGER.warn("The connection with Orangebeard could not be established!");
