@@ -8,6 +8,7 @@ import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
 import io.orangebeard.client.entity.UpdateTestRun;
 
+import java.util.Set;
 import java.util.UUID;
 
 public interface OrangebeardClient {
@@ -23,6 +24,8 @@ public interface OrangebeardClient {
     void finishTestRun(UUID testRunUUID, FinishTestRun finishTestRun);
 
     void log(Log log);
+
+    void log(Set<Log> logs);
 
     void sendAttachment(Attachment attachment);
 }
