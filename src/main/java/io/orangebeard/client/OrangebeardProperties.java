@@ -34,7 +34,7 @@ public class OrangebeardProperties {
     private String projectName;
     private String testSetName;
     private String description;
-    private final Set<Attribute> attributes = new HashSet<>();
+    private Set<Attribute> attributes = new HashSet<>();
     private boolean propertyFilePresent;
     private LogLevel logLevel = LogLevel.info;
     private boolean logsAtEndOfTest = false;
@@ -46,13 +46,14 @@ public class OrangebeardProperties {
     /**
      * all args constructor in order to allow listeners to read their properties in a custom way.
      */
-    public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, boolean propertyFilePresent, LogLevel logLevel, boolean logsAtEndOfTest) {
+    public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, Set<Attribute> attributes, LogLevel logLevel, boolean logsAtEndOfTest) {
         this.endpoint = endpoint;
         this.accessToken = accessToken;
         this.projectName = projectName;
         this.testSetName = testSetName;
         this.description = description;
-        this.propertyFilePresent = propertyFilePresent;
+        this.attributes = attributes;
+        this.propertyFilePresent = false;
         this.logLevel = logLevel;
         this.logsAtEndOfTest = logsAtEndOfTest;
     }
@@ -65,6 +66,7 @@ public class OrangebeardProperties {
         this.accessToken = accessToken;
         this.projectName = projectName;
         this.testSetName = testSetName;
+        this.propertyFilePresent = false;
     }
 
     OrangebeardProperties(String propertyFile) {
