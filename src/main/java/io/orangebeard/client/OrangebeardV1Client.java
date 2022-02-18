@@ -21,6 +21,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import static java.lang.String.format;
+import static java.util.Collections.singleton;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 
@@ -109,16 +110,7 @@ public class OrangebeardV1Client extends AbstractClient {
     }
 
     public void log(Log log) {
-        if (connectionWithOrangebeardIsValid) {
-            try {
-                HttpEntity<Log> request = new HttpEntity<>(log, getAuthorizationHeaders(uuid.toString()));
-                restTemplate.exchange(format("%s/listener/v1/%s/log", endpoint, projectName), POST, request, Response.class);
-            } catch (HttpServerErrorException | ResourceAccessException e) {
-                LOGGER.error("Log cannot be reported to Orangebeard. Uuid=[{}]; loglevel=[{}]; message=[{}]", log.getItemUuid(), log.getLogLevel(), log.getMessage(), e);
-            }
-        } else {
-            LOGGER.warn("The connection with Orangebeard could not be established!");
-        }
+        log(singleton(log));
     }
 
     @Override
