@@ -9,7 +9,9 @@ public enum OrangebeardProperty {
     TESTSET("orangebeard.testset"),
     ACCESS_TOKEN("orangebeard.accessToken"),
     DESCRIPTION("orangebeard.description"),
-    ATTRIBUTES("orangebeard.attributes");
+    LOG_LEVEL("orangebeard.logLevel"),
+    ATTRIBUTES("orangebeard.attributes"),
+    LOGS_AT_END_OF_TEST("orangebeard.logsAtEndOfTest");
 
     private final String propertyName;
 

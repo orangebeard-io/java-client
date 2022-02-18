@@ -9,6 +9,7 @@ import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
 import io.orangebeard.client.entity.UpdateTestRun;
 
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import static java.lang.String.format;
+import static java.util.Collections.singleton;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 
@@ -108,12 +110,18 @@ public class OrangebeardV1Client extends AbstractClient {
     }
 
     public void log(Log log) {
-        if (connectionWithOrangebeardIsValid) {
+        log(singleton(log));
+    }
+
+    @Override
+    public void log(Set<Log> logs) {
+        if (connectionWithOrangebeardIsValid && logs!=null && !logs.isEmpty()) {
             try {
-                HttpEntity<Log> request = new HttpEntity<>(log, getAuthorizationHeaders(uuid.toString()));
+                HttpEntity<Set<Log>> request = new HttpEntity<>(logs, getAuthorizationHeaders(uuid.toString()));
                 restTemplate.exchange(format("%s/listener/v1/%s/log", endpoint, projectName), POST, request, Response.class);
             } catch (HttpServerErrorException | ResourceAccessException e) {
-                LOGGER.error("Log cannot be reported to Orangebeard. Uuid=[{}]; loglevel=[{}]; message=[{}]", log.getItemUuid(), log.getLogLevel(), log.getMessage(), e);
+                Log anyLog = logs.iterator().next();
+                LOGGER.error("Logs cannot be reported to Orangebeard. One of the logs that cannot be reported Uuid=[{}]; loglevel=[{}]; message=[{}]", anyLog.getItemUuid(), anyLog.getLogLevel(), anyLog.getMessage(), e);
             }
         } else {
             LOGGER.warn("The connection with Orangebeard could not be established!");
