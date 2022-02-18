@@ -113,7 +113,7 @@ public class OrangebeardV2Client extends AbstractClient {
     public void log(Set<Log> logs) {
         if (connectionWithOrangebeardIsValid && logs!=null && !logs.isEmpty()) {
             try {
-                HttpEntity<Set<Log>> request = new HttpEntity<>(logs, getAuthorizationHeaders(uuid.toString()));
+                HttpEntity<LinkedMultiValueMap<String, Object>> request = getMultipartLogRequest(logs);
                 restTemplate.exchange(format("%s/listener/v2/%s/log", endpoint, projectName), POST, request, Response.class);
             } catch (HttpServerErrorException | ResourceAccessException e) {
                 Log anyLog = logs.iterator().next();

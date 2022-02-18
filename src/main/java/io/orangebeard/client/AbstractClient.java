@@ -1,12 +1,14 @@
 package io.orangebeard.client;
 
 import io.orangebeard.client.entity.Attachment;
+import io.orangebeard.client.entity.Log;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.UUID;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.util.LinkedMultiValueMap;
-import java.util.Collections;
-import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
@@ -39,6 +41,16 @@ public abstract class AbstractClient implements OrangebeardClient {
         LinkedMultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("json_request_part", Collections.singletonList(attachmentLogItem));
         parts.add("file", filePart);
+
+        HttpHeaders headers = getAuthorizationHeaders(uuid.toString());
+        headers.setContentType(MULTIPART_FORM_DATA);
+
+        return new HttpEntity<>(parts, headers);
+    }
+
+    protected HttpEntity<LinkedMultiValueMap<String, Object>> getMultipartLogRequest(Set<Log> logs) {
+        LinkedMultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("json_request_part", logs);
 
         HttpHeaders headers = getAuthorizationHeaders(uuid.toString());
         headers.setContentType(MULTIPART_FORM_DATA);
