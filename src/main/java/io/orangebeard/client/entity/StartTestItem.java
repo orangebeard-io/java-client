@@ -47,6 +47,7 @@ public class StartTestItem {
     private LocalDateTime startTime;
     private Set<Attribute> attributes;
     @JsonProperty("hasStats")
+    @Builder.Default
     private boolean countAsTestItem = true;
 
     public StartTestItem(UUID testRunUUID, String name, TestItemType type, String description, Set<Attribute> attributes) {
@@ -56,6 +57,7 @@ public class StartTestItem {
         this.description = description;
         this.startTime = LocalDateTime.now();
         this.attributes = attributes;
+        this.countAsTestItem = true;
     }
 
     public StartTestItem(UUID testRunUUID, String name, TestItemType type) {
@@ -63,6 +65,7 @@ public class StartTestItem {
         this.name = name;
         this.type = type;
         this.startTime = LocalDateTime.now();
+        this.countAsTestItem = true;
     }
 
     public StartTestItem(UUID testRunUUID, String name, TestItemType type, String description, Set<Attribute> attributes, boolean countAsTestItem) {
