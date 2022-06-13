@@ -26,11 +26,14 @@ public class Log {
     @JsonProperty("level")
     private LogLevel logLevel;
 
-    public Log(UUID testRunUUID, UUID testItemUUID, LogLevel logLevel, String message) {
+    private LogFormat logFormat;
+
+    public Log(UUID testRunUUID, UUID testItemUUID, LogLevel logLevel, String message, LogFormat logFormat) {
         this.itemUuid = testItemUUID;
         this.testRunUUID = testRunUUID;
         this.logLevel = logLevel;
         this.time = LocalDateTime.now();
         this.message = message;
+        this.logFormat = logFormat;
     }
 }
