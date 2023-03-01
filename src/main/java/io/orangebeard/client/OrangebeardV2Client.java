@@ -64,6 +64,19 @@ public class OrangebeardV2Client extends AbstractClient {
         return null;
     }
 
+    public void startTestRunAfterAnnouncement(UUID testRunUUID) {
+        if (connectionWithOrangebeardIsValid) {
+            try {
+                HttpEntity<StartTestRun> request = new HttpEntity<>(getAuthorizationHeaders(uuid.toString()));
+                restTemplate.exchange(format("%s/listener/v3/%s/test-run/start/%s", endpoint, projectName, testRunUUID),
+                        PUT, request, Response.class);
+            } catch (Exception e) {
+                LOGGER.error("The connection with Orangebeard could not be established! Check the properties and try again!");
+                connectionWithOrangebeardIsValid = false;
+            }
+        }
+    }
+
     public void updateTestRun(UUID testRunUUID, UpdateTestRun updateTestRun) {
         if (connectionWithOrangebeardIsValid) {
             HttpEntity<UpdateTestRun> request = new HttpEntity<>(updateTestRun, getAuthorizationHeaders(uuid.toString()));

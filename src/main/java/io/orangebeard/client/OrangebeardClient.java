@@ -15,6 +15,8 @@ public interface OrangebeardClient {
 
     UUID startTestRun(StartTestRun testRun);
 
+    void startTestRunAfterAnnouncement(UUID uuid);
+
     void updateTestRun(UUID testRunUUID, UpdateTestRun updateTestRun);
 
     UUID startTestItem(UUID suiteId, StartTestItem testItem);

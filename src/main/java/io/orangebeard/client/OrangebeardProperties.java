@@ -39,6 +39,8 @@ public class OrangebeardProperties {
     private LogLevel logLevel = LogLevel.info;
     private boolean logsAtEndOfTest = false;
 
+    private UUID announcedTestRunUUID;
+
     private enum PropertyNameStyle {
         DOT, UNDERSCORE
     }
@@ -46,7 +48,7 @@ public class OrangebeardProperties {
     /**
      * all args constructor in order to allow listeners to read their properties in a custom way.
      */
-    public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, Set<Attribute> attributes, LogLevel logLevel, boolean logsAtEndOfTest) {
+    public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, Set<Attribute> attributes, LogLevel logLevel, boolean logsAtEndOfTest, UUID announcedTestRunUUID) {
         this.endpoint = endpoint;
         this.accessToken = accessToken;
         this.projectName = projectName;
@@ -56,6 +58,7 @@ public class OrangebeardProperties {
         this.propertyFilePresent = false;
         this.logLevel = logLevel;
         this.logsAtEndOfTest = logsAtEndOfTest;
+        this.announcedTestRunUUID = announcedTestRunUUID;
     }
 
     /**
@@ -83,6 +86,10 @@ public class OrangebeardProperties {
 
     public boolean requiredValuesArePresent() {
         return endpoint != null && accessToken != null && projectName != null && testSetName != null;
+    }
+
+    public boolean isAnnouncedUUIDPresent() {
+        return announcedTestRunUUID != null;
     }
 
     public void checkPropertiesArePresent() {
