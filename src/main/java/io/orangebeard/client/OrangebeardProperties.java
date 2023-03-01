@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import static io.orangebeard.client.OrangebeardProperty.ACCESS_TOKEN;
+import static io.orangebeard.client.OrangebeardProperty.ANNOUNCED_TEST_RUN_UUID;
 import static io.orangebeard.client.OrangebeardProperty.DESCRIPTION;
 import static io.orangebeard.client.OrangebeardProperty.ENDPOINT;
 import static io.orangebeard.client.OrangebeardProperty.LOGS_AT_END_OF_TEST;
@@ -144,6 +145,7 @@ public class OrangebeardProperties {
         this.logLevel = lookupLogLevel(lookupFunc);
         this.logsAtEndOfTest = lookUpBooleanWithDefault(LOGS_AT_END_OF_TEST, lookupFunc, this.logsAtEndOfTest);
         this.attributes.addAll(extractAttributes(lookupFunc.apply(OrangebeardProperty.ATTRIBUTES.getPropertyName())));
+        this.announcedTestRunUUID = lookupUUIDWithDefault(ANNOUNCED_TEST_RUN_UUID, lookupFunc, this.announcedTestRunUUID);
     }
 
     @SuppressWarnings("SameParameterValue")
