@@ -7,6 +7,7 @@ import io.orangebeard.client.entity.Log;
 import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
 import io.orangebeard.client.entity.UpdateTestRun;
+import io.orangebeard.client.exceptions.ClientVersionException;
 
 import java.util.Set;
 import java.util.UUID;
@@ -15,7 +16,9 @@ public interface OrangebeardClient {
 
     UUID startTestRun(StartTestRun testRun);
 
-    void startTestRunAfterAnnouncement(UUID uuid);
+    default void startTestRunAfterAnnouncement(UUID uuid) {
+        throw new ClientVersionException("Test-run can be started after announcement only by V3 client");
+    }
 
     void updateTestRun(UUID testRunUUID, UpdateTestRun updateTestRun);
 

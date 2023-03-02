@@ -64,11 +64,6 @@ public class OrangebeardV1Client extends AbstractClient {
         return null;
     }
 
-    @Override
-    public void startTestRunAfterAnnouncement(UUID uuid) {
-        // TODO
-    }
-
     public void updateTestRun(UUID testRunUUID, UpdateTestRun updateTestRun) {
         if (connectionWithOrangebeardIsValid) {
             HttpEntity<UpdateTestRun> request = new HttpEntity<>(updateTestRun, getAuthorizationHeaders(uuid.toString()));
