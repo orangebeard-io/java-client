@@ -28,7 +28,6 @@ import static io.orangebeard.client.OrangebeardProperty.TEST_RUN_UUID;
 @Getter
 public class OrangebeardProperties {
     private static final String ORANGEBEARD_PROPERTY_FILE = "orangebeard.properties";
-
     private static final Logger LOGGER = LoggerFactory.getLogger(OrangebeardProperties.class);
     private String endpoint;
     private UUID accessToken;
@@ -39,7 +38,6 @@ public class OrangebeardProperties {
     private boolean propertyFilePresent;
     private LogLevel logLevel = LogLevel.info;
     private boolean logsAtEndOfTest = false;
-
     private UUID testRunUUID;
 
     private enum PropertyNameStyle {
@@ -50,6 +48,11 @@ public class OrangebeardProperties {
      * all args constructor in order to allow listeners to read their properties in a custom way.
      */
     public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, Set<Attribute> attributes, LogLevel logLevel, boolean logsAtEndOfTest, UUID testRunUUID) {
+        this(endpoint, accessToken, projectName, testSetName, description, attributes, logLevel, logsAtEndOfTest);
+        this.testRunUUID = testRunUUID;
+    }
+
+    public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, Set<Attribute> attributes, LogLevel logLevel, boolean logsAtEndOfTest) {
         this.endpoint = endpoint;
         this.accessToken = accessToken;
         this.projectName = projectName;
@@ -59,7 +62,6 @@ public class OrangebeardProperties {
         this.propertyFilePresent = false;
         this.logLevel = logLevel;
         this.logsAtEndOfTest = logsAtEndOfTest;
-        this.testRunUUID = testRunUUID;
     }
 
     /**

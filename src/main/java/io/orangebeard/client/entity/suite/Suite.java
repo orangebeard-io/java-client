@@ -1,6 +1,9 @@
-package io.orangebeard.client.entity;
+package io.orangebeard.client.entity.suite;
 
 import java.util.UUID;
+
+import io.orangebeard.client.entity.Status;
+
 import lombok.Getter;
 
 @Getter

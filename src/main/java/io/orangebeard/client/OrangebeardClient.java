@@ -16,7 +16,7 @@ public interface OrangebeardClient {
 
     UUID startTestRun(StartTestRun testRun);
 
-    default void startTestRunAfterAnnouncement(UUID uuid) {
+    default void startAnnouncedTestRun(UUID testRunUUID) {
         throw new ClientVersionException("Test-run can be started after announcement only by V3 client");
     }
 
