@@ -1,11 +1,8 @@
 package io.orangebeard.client;
 
-import io.orangebeard.client.entity.Attachment;
-import io.orangebeard.client.entity.FinishTestItem;
 import io.orangebeard.client.entity.FinishTestRun;
 import io.orangebeard.client.entity.Log;
 import io.orangebeard.client.entity.Response;
-import io.orangebeard.client.entity.StartTestItem;
 import io.orangebeard.client.entity.StartTestRun;
 
 import io.orangebeard.client.entity.suite.Suite;
@@ -13,6 +10,8 @@ import io.orangebeard.client.entity.UpdateTestRun;
 
 import io.orangebeard.client.entity.suite.StartSuiteRQ;
 
+import io.orangebeard.client.entity.test.FinishTest;
+import io.orangebeard.client.entity.test.StartTest;
 import io.orangebeard.client.exceptions.ClientVersionException;
 
 import org.slf4j.Logger;
@@ -27,13 +26,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.springframework.http.HttpMethod.PUT;
 
-public class OrangebeardV3Client extends AbstractClient {
+public class OrangebeardV3Client extends LatestAbstractClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrangebeardV3Client.class);
     private static final String CONNECTION_FAILED = "The connection with Orangebeard could not be established!";
     private final String endpoint;
@@ -132,10 +130,10 @@ public class OrangebeardV3Client extends AbstractClient {
     }
 
     @Override
-    public UUID startTestItem(UUID suiteId, StartTestItem startTestItem) {
+    public UUID startTest(UUID suiteId, StartTest startTest) {
         if (this.connectionWithOrangebeardIsValid) {
-            HttpEntity<StartTestItem> request = new HttpEntity<>(startTestItem, this.getAuthorizationHeaders(String.valueOf(accessToken)));
-            return  this.restTemplate.exchange(
+            HttpEntity<StartTest> request = new HttpEntity<>(startTest, this.getAuthorizationHeaders(String.valueOf(accessToken)));
+            return this.restTemplate.exchange(
                             String.format("%s/listener/v3/%s/test/start", this.endpoint, this.projectName),
                             HttpMethod.POST, request, UUID.class)
                     .getBody();
@@ -146,9 +144,9 @@ public class OrangebeardV3Client extends AbstractClient {
     }
 
     @Override
-    public void finishTestItem(UUID itemId, FinishTestItem finishTestItem) {
+    public void finishTest(UUID itemId, FinishTest finishTest) {
         if (this.connectionWithOrangebeardIsValid) {
-            HttpEntity<FinishTestItem> request = new HttpEntity<>(finishTestItem, this.getAuthorizationHeaders(String.valueOf(accessToken)));
+            HttpEntity<FinishTest> request = new HttpEntity<>(finishTest, this.getAuthorizationHeaders(String.valueOf(accessToken)));
             this.restTemplate.exchange(
                     String.format("%s/listener/v3/%s/test/finish/%s", this.endpoint, this.projectName, accessToken),
                     HttpMethod.PUT,
@@ -162,15 +160,5 @@ public class OrangebeardV3Client extends AbstractClient {
     @Override
     public void log(Log log) {
         this.log(Collections.singleton(log));
-    }
-
-    @Override
-    public void log(Set<Log> logs) {
-        LOGGER.warn("Log API for V3 Client not defined yet");
-    }
-
-    @Override
-    public void sendAttachment(Attachment attachment) {
-        LOGGER.warn("Attachment for V3 Client is not defined yet");
     }
 }
