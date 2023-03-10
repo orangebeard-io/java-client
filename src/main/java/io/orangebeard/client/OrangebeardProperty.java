@@ -11,7 +11,8 @@ public enum OrangebeardProperty {
     DESCRIPTION("orangebeard.description"),
     LOG_LEVEL("orangebeard.logLevel"),
     ATTRIBUTES("orangebeard.attributes"),
-    LOGS_AT_END_OF_TEST("orangebeard.logsAtEndOfTest");
+    LOGS_AT_END_OF_TEST("orangebeard.logsAtEndOfTest"),
+    TEST_RUN_UUID("orangebeard.testRunUUID");
 
     private final String propertyName;
 

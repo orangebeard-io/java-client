@@ -3,8 +3,9 @@ package io.orangebeard.client.entity;
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
+@SuperBuilder
 @Getter
 public class FinishTestRun {
     @JsonSerialize(using = DateSerializer.class)

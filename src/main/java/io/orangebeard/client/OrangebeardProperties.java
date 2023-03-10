@@ -22,12 +22,12 @@ import static io.orangebeard.client.OrangebeardProperty.LOGS_AT_END_OF_TEST;
 import static io.orangebeard.client.OrangebeardProperty.LOG_LEVEL;
 import static io.orangebeard.client.OrangebeardProperty.PROJECT;
 import static io.orangebeard.client.OrangebeardProperty.TESTSET;
+import static io.orangebeard.client.OrangebeardProperty.TEST_RUN_UUID;
 
 @ToString
 @Getter
 public class OrangebeardProperties {
     private static final String ORANGEBEARD_PROPERTY_FILE = "orangebeard.properties";
-
     private static final Logger LOGGER = LoggerFactory.getLogger(OrangebeardProperties.class);
     private String endpoint;
     private UUID accessToken;
@@ -38,6 +38,7 @@ public class OrangebeardProperties {
     private boolean propertyFilePresent;
     private LogLevel logLevel = LogLevel.info;
     private boolean logsAtEndOfTest = false;
+    private UUID testRunUUID;
 
     private enum PropertyNameStyle {
         DOT, UNDERSCORE
@@ -46,6 +47,11 @@ public class OrangebeardProperties {
     /**
      * all args constructor in order to allow listeners to read their properties in a custom way.
      */
+    public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, Set<Attribute> attributes, LogLevel logLevel, boolean logsAtEndOfTest, UUID testRunUUID) {
+        this(endpoint, accessToken, projectName, testSetName, description, attributes, logLevel, logsAtEndOfTest);
+        this.testRunUUID = testRunUUID;
+    }
+
     public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, Set<Attribute> attributes, LogLevel logLevel, boolean logsAtEndOfTest) {
         this.endpoint = endpoint;
         this.accessToken = accessToken;
@@ -83,6 +89,10 @@ public class OrangebeardProperties {
 
     public boolean requiredValuesArePresent() {
         return endpoint != null && accessToken != null && projectName != null && testSetName != null;
+    }
+
+    public boolean isAnnouncedUUIDPresent() {
+        return testRunUUID != null;
     }
 
     public void checkPropertiesArePresent() {
@@ -137,6 +147,7 @@ public class OrangebeardProperties {
         this.logLevel = lookupLogLevel(lookupFunc);
         this.logsAtEndOfTest = lookUpBooleanWithDefault(LOGS_AT_END_OF_TEST, lookupFunc, this.logsAtEndOfTest);
         this.attributes.addAll(extractAttributes(lookupFunc.apply(OrangebeardProperty.ATTRIBUTES.getPropertyName())));
+        this.testRunUUID = lookupUUIDWithDefault(TEST_RUN_UUID, lookupFunc, this.testRunUUID);
     }
 
     @SuppressWarnings("SameParameterValue")
