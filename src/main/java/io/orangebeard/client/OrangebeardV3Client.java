@@ -105,7 +105,7 @@ public class OrangebeardV3Client {
     }
 
     public void updateTestRun(UUID testRunUUID, UpdateTestRun updateTestRun) {
-        throw new ClientVersionException("Method to update an existing a test-run by test-run uuid is not supported in V3 Client!");
+        throw new ClientVersionException("Method to update an existing a test-run by test-run uuid is not yet supported in V3 Client!");
     }
 
     public void finishTestRun(UUID testRunUUID, FinishTestRun finishTestRun) {
@@ -137,7 +137,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    public UUID startTest(UUID suiteId, StartTest startTest) {
+    public UUID startTest(StartTest startTest) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<StartTest> request = new HttpEntity<>(startTest, this.getAuthorizationHeaders(String.valueOf(accessToken)));
             return this.restTemplate.exchange(
