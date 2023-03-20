@@ -16,8 +16,9 @@ public class Attachment {
 
     @AllArgsConstructor
     @Getter
+    @Builder
     @NoArgsConstructor
-    public class AttachmentFile {
+    public static class AttachmentFile {
         private String name;
         private byte[] content;
         private String contentType;
@@ -25,8 +26,9 @@ public class Attachment {
 
     @AllArgsConstructor
     @Getter
+    @Builder
     @NoArgsConstructor
-    public class AttachmentMetaData {
+    public static class AttachmentMetaData {
         private UUID testRunUUID;
         private UUID testUUID;
         private UUID stepUUID;
