@@ -27,14 +27,4 @@ public abstract class LatestAbstractClient extends AbstractClient implements Lat
     public void finishTestItem(UUID itemId, FinishTestItem finishTestItem) {
         throw new ClientVersionException("StartTestItem is used only in V1 & V2 clients.");
     }
-
-    @Override
-    public void log(Set<Log> logs) {
-        log.warn("Log API for V3 Client not defined yet");
-    }
-
-    @Override
-    public void sendAttachment(Attachment attachment) {
-        log.warn("Attachment for V3 Client is not defined yet");
-    }
 }

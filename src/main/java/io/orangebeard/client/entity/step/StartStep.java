@@ -1,15 +1,11 @@
-package io.orangebeard.client.entity.suite;
-
-import io.orangebeard.client.entity.Attribute;
+package io.orangebeard.client.entity.step;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
-import java.util.Set;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -17,10 +13,11 @@ import java.util.UUID;
 @Getter
 @EqualsAndHashCode
 @NoArgsConstructor
-public class StartSuiteRQ {
+public class StartStep {
     private UUID testRunUUID;
-    private UUID parentSuiteUUID;
+    private UUID testUUID;
+    private UUID parentStepUUID;
+    private String stepName;
     private String description;
-    private Set<Attribute> attributes;
-    private List<String> suiteNames;
+    private ZonedDateTime startTime;
 }

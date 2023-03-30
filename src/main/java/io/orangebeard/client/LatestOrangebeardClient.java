@@ -3,7 +3,7 @@ package io.orangebeard.client;
 import io.orangebeard.client.entity.FinishTestRun;
 import io.orangebeard.client.entity.StartTestRun;
 import io.orangebeard.client.entity.UpdateTestRun;
-import io.orangebeard.client.entity.suite.StartSuiteRQ;
+import io.orangebeard.client.entity.suite.StartSuite;
 import io.orangebeard.client.entity.suite.Suite;
 import io.orangebeard.client.entity.test.FinishTest;
 import io.orangebeard.client.entity.test.StartTest;
@@ -25,5 +25,5 @@ public interface LatestOrangebeardClient {
 
     void finishTest(UUID itemId, FinishTest finishTest);
 
-    List<Suite> startSuite(StartSuiteRQ startSuiteRQ);
+    List<Suite> startSuite(StartSuite startSuite);
 }
