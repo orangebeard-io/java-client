@@ -1,22 +1,20 @@
 package io.orangebeard.client.entity.suite;
 
+import java.util.List;
 import java.util.UUID;
 
-import io.orangebeard.client.entity.Status;
-
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@EqualsAndHashCode
 public class Suite {
-    private UUID uuid;
-    private Status status = Status.PASSED;
-
-    public Suite(UUID uuid) {
-        this.uuid = uuid;
-    }
-
-    public Suite setStatus(Status status) {
-        this.status = status;
-        return this;
-    }
+    private UUID suiteUUID;
+    private UUID parentUUID;
+    private String localSuiteName;
+    private List<String> fullSuitePath;
 }
