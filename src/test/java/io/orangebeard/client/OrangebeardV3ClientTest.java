@@ -1,13 +1,12 @@
 package io.orangebeard.client;
 
-import io.orangebeard.client.entity.FinishTestRun;
+import io.orangebeard.client.entity.FinishV3TestRun;
 import io.orangebeard.client.entity.LogFormat;
 import io.orangebeard.client.entity.Response;
 
 import io.orangebeard.client.entity.StartTestRun;
 
 import io.orangebeard.client.entity.StartV3TestRun;
-import io.orangebeard.client.entity.Status;
 
 import io.orangebeard.client.entity.attachment.Attachment;
 import io.orangebeard.client.entity.log.Log;
@@ -116,8 +115,8 @@ class OrangebeardV3ClientTest {
     @Test
     void when_the_connection_is_valid_test_run_can_be_finished() {
         UUID testRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        FinishTestRun finishTestRun = FinishTestRun.builder().status(Status.PASSED).build();
-        HttpEntity<FinishTestRun> httpEntity = new HttpEntity<>(finishTestRun, headers);
+        FinishV3TestRun finishTestRun = new FinishV3TestRun();
+        HttpEntity<FinishV3TestRun> httpEntity = new HttpEntity<>(finishTestRun, headers);
 
         when(restTemplate.exchange(anyString(), eq(PUT), eq(httpEntity), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatus.OK));
 
