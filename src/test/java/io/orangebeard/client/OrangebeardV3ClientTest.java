@@ -2,15 +2,16 @@ package io.orangebeard.client;
 
 import io.orangebeard.client.entity.FinishTestRun;
 import io.orangebeard.client.entity.LogFormat;
-import io.orangebeard.client.entity.LogLevel;
 import io.orangebeard.client.entity.Response;
 
 import io.orangebeard.client.entity.StartTestRun;
 
+import io.orangebeard.client.entity.StartV3TestRun;
 import io.orangebeard.client.entity.Status;
 
 import io.orangebeard.client.entity.attachment.Attachment;
 import io.orangebeard.client.entity.log.Log;
+import io.orangebeard.client.entity.log.LogLevel;
 import io.orangebeard.client.entity.step.FinishStep;
 import io.orangebeard.client.entity.step.StartStep;
 import io.orangebeard.client.entity.suite.StartSuite;
@@ -22,7 +23,6 @@ import io.orangebeard.client.entity.test.TestStatus;
 
 import io.orangebeard.client.entity.test.TestType;
 
-import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,14 +34,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 import java.util.UUID;
 
 import static java.lang.String.format;
@@ -100,12 +97,12 @@ class OrangebeardV3ClientTest {
     @Test
     void when_the_connection_is_valid_test_run_can_be_started() {
         UUID uuid = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        StartTestRun startTestRun = StartTestRun.builder()
-                .name("test set#1")
+        StartV3TestRun startTestRun = StartV3TestRun.builder()
+                .testSetName("test set#1")
                 .description("test")
                 .startTime(LocalDateTime.now())
                 .build();
-        HttpEntity<StartTestRun> httpEntity = new HttpEntity<>(startTestRun, headers);
+        HttpEntity<StartV3TestRun> httpEntity = new HttpEntity<>(startTestRun, headers);
         ResponseEntity<UUID> response = new ResponseEntity<>(uuid, HttpStatus.OK);
 
         when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
@@ -250,7 +247,7 @@ class OrangebeardV3ClientTest {
                 .testUUID(testUUID)
                 .stepUUID(UUID.randomUUID())
                 .message("Log message")
-                .logLevel(LogLevel.warn)
+                .logLevel(LogLevel.WARN)
                 .logFormat(LogFormat.PLAIN_TEXT)
                 .build();
         HttpEntity<Log> httpEntity = new HttpEntity<>(log, headers);

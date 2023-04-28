@@ -1,6 +1,7 @@
 package io.orangebeard.client;
 
 import io.orangebeard.client.entity.FinishTestRun;
+import io.orangebeard.client.entity.StartV3TestRun;
 import io.orangebeard.client.entity.attachment.Attachment;
 import io.orangebeard.client.entity.log.Log;
 import io.orangebeard.client.entity.Response;
@@ -77,10 +78,10 @@ public class OrangebeardV3Client {
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
-    public UUID startTestRun(StartTestRun testRun) {
+    public UUID startTestRun(StartV3TestRun testRun) {
         if (this.connectionWithOrangebeardIsValid) {
             try {
-                HttpEntity<StartTestRun> request = new HttpEntity<>(testRun, this.getAuthorizationHeaders(String.valueOf(accessToken)));
+                HttpEntity<StartV3TestRun> request = new HttpEntity<>(testRun, this.getAuthorizationHeaders(String.valueOf(accessToken)));
                 ResponseEntity<UUID> response =  this.restTemplate.exchange(
                                 String.format("%s/listener/v3/%s/test-run/start", this.endpoint, this.projectName),
                                 HttpMethod.POST, request, UUID.class);
