@@ -35,6 +35,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -131,11 +132,14 @@ class OrangebeardV3ClientTest {
     void when_the_connection_is_valid_suite_can_be_started() {
         UUID uuid = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
         UUID parentUUID = UUID.randomUUID();
+        List<String> suiteNames = new ArrayList<>(2);
+        suiteNames.add("suite1");
+        suiteNames.add("suite2");
         StartSuite suite = StartSuite.builder()
                 .testRunUUID(uuid)
                 .parentSuiteUUID(parentUUID)
                 .description("test")
-                .suiteNames(List.of("suite1", "suite2"))
+                .suiteNames(suiteNames)
                 .build();
         HttpEntity<StartSuite> httpEntity = new HttpEntity<>(suite, headers);
 
