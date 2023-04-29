@@ -1,6 +1,8 @@
 package io.orangebeard.client;
 
 import io.orangebeard.client.entity.FinishTestRun;
+import io.orangebeard.client.entity.FinishV3TestRun;
+import io.orangebeard.client.entity.StartV3TestRun;
 import io.orangebeard.client.entity.attachment.Attachment;
 import io.orangebeard.client.entity.log.Log;
 import io.orangebeard.client.entity.Response;
@@ -22,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
@@ -76,14 +79,15 @@ public class OrangebeardV3Client {
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
-    public UUID startTestRun(StartTestRun testRun) {
+    public UUID startTestRun(StartV3TestRun testRun) {
         if (this.connectionWithOrangebeardIsValid) {
             try {
-                HttpEntity<StartTestRun> request = new HttpEntity<>(testRun, this.getAuthorizationHeaders(String.valueOf(accessToken)));
-                return this.restTemplate.exchange(
+                HttpEntity<StartV3TestRun> request = new HttpEntity<>(testRun, this.getAuthorizationHeaders(String.valueOf(accessToken)));
+                ResponseEntity<UUID> response =  this.restTemplate.exchange(
                                 String.format("%s/listener/v3/%s/test-run/start", this.endpoint, this.projectName),
-                                HttpMethod.POST, request, UUID.class)
-                        .getBody();
+                                HttpMethod.POST, request, UUID.class);
+
+                return response.getBody() != null ? response.getBody() : null;
             } catch (Exception var3) {
                 LOGGER.error("The connection with Orangebeard could not be established! Check the properties and try again!");
                 this.connectionWithOrangebeardIsValid = false;
@@ -108,14 +112,18 @@ public class OrangebeardV3Client {
         throw new ClientVersionException("Method to update an existing a test-run by test-run uuid is not yet supported in V3 Client!");
     }
 
-    public void finishTestRun(UUID testRunUUID, FinishTestRun finishTestRun) {
+    public void finishTestRun(UUID testRunUUID, FinishV3TestRun finishTestRun) {
         if (this.connectionWithOrangebeardIsValid) {
-            HttpEntity<FinishTestRun> request = new HttpEntity<>(finishTestRun, this.getAuthorizationHeaders(String.valueOf(accessToken)));
-            this.restTemplate.exchange(
+            HttpEntity<FinishV3TestRun> request = new HttpEntity<>(finishTestRun, this.getAuthorizationHeaders(String.valueOf(accessToken)));
+            ResponseEntity<Void> response = this.restTemplate.exchange(
                     String.format("%s/listener/v3/%s/test-run/finish/%s", this.endpoint, this.projectName, testRunUUID),
                     HttpMethod.PUT,
                     request,
                     Void.class);
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                LOGGER.info("TestRun Finish request responded with a successful 200 status code.");
+            }
         } else {
             LOGGER.warn(CONNECTION_FAILED);
         }
@@ -140,10 +148,11 @@ public class OrangebeardV3Client {
     public UUID startTest(StartTest startTest) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<StartTest> request = new HttpEntity<>(startTest, this.getAuthorizationHeaders(String.valueOf(accessToken)));
-            return this.restTemplate.exchange(
+            ResponseEntity<UUID> response = this.restTemplate.exchange(
                             String.format("%s/listener/v3/%s/test/start", this.endpoint, this.projectName),
-                            HttpMethod.POST, request, UUID.class)
-                    .getBody();
+                            HttpMethod.POST, request, UUID.class);
+
+            return response.getBody() != null ? response.getBody() : null;
         } else {
             LOGGER.warn(CONNECTION_FAILED);
             return null;
@@ -153,11 +162,12 @@ public class OrangebeardV3Client {
     public void finishTest(UUID testUUID, FinishTest finishTest) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<FinishTest> request = new HttpEntity<>(finishTest, this.getAuthorizationHeaders(String.valueOf(accessToken)));
-            this.restTemplate.exchange(
-                    String.format("%s/listener/v3/%s/test/finish/%s", this.endpoint, this.projectName, testUUID),
-                    HttpMethod.PUT,
-                    request,
-                    Void.class);
+            String url = String.format("%s/listener/v3/%s/test/finish/%s", this.endpoint, this.projectName, testUUID);
+            ResponseEntity<Void> response = this.restTemplate.exchange(url, HttpMethod.PUT, request, Void.class);
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                LOGGER.info("Test finished request responded with a successful 200 status code.");
+            }
         } else {
             LOGGER.warn(CONNECTION_FAILED);
         }

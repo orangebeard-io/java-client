@@ -1,7 +1,8 @@
 package io.orangebeard.client;
 
 import io.orangebeard.client.entity.Attribute;
-import io.orangebeard.client.entity.LogLevel;
+
+import io.orangebeard.client.entity.log.LogLevel;
 
 import lombok.Getter;
 import lombok.ToString;
@@ -36,7 +37,7 @@ public class OrangebeardProperties {
     private String description;
     private Set<Attribute> attributes = new HashSet<>();
     private boolean propertyFilePresent;
-    private LogLevel logLevel = LogLevel.info;
+    private LogLevel logLevel = LogLevel.INFO;
     private boolean logsAtEndOfTest = false;
     private UUID testRunUUID;
 
@@ -173,7 +174,7 @@ public class OrangebeardProperties {
         try {
             return UUID.fromString(temp);
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(ACCESS_TOKEN.getPropertyName() + " is not a valid UUID!");
+            LOGGER.warn(ACCESS_TOKEN.getPropertyName(), "{0} is not a valid UUID!");
             return defaultValue;
         }
     }
@@ -181,9 +182,9 @@ public class OrangebeardProperties {
     private LogLevel lookupLogLevel(Function<String, String> lookupFunc) {
         String logLevel = lookupFunc.apply(LOG_LEVEL.getPropertyName());
         try {
-            return logLevel == null ? this.logLevel : LogLevel.valueOf(logLevel.toLowerCase());
+            return logLevel == null ? this.logLevel : LogLevel.valueOf(logLevel);
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(LOG_LEVEL.getPropertyName() + " is not a valid log level! Choose DEBUG, INFO, WARN or ERROR. INFO is now used by default.");
+            LOGGER.warn(LOG_LEVEL.getPropertyName() + "is not a valid log level! Choose DEBUG, INFO, WARN or ERROR. INFO is now used by default.");
             return this.logLevel;
         }
     }
@@ -215,16 +216,13 @@ public class OrangebeardProperties {
     @SuppressWarnings("DuplicateBranchesInSwitch")
     private int convertToInt(LogLevel logLevel) {
         switch (logLevel) {
-            case debug:
-            case trace:
+            case DEBUG:
                 return 0;
-            case info:
+            case INFO:
                 return 1;
-            case warn:
+            case WARN:
                 return 2;
-            case error:
-            case fatal:
-                return 3;
+            case ERROR:
         }
         return 1;
     }

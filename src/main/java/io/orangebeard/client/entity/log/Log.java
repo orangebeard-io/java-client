@@ -1,7 +1,6 @@
 package io.orangebeard.client.entity.log;
 
 import io.orangebeard.client.entity.LogFormat;
-import io.orangebeard.client.entity.LogLevel;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
