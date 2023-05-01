@@ -100,7 +100,7 @@ class OrangebeardV3ClientTest {
         StartV3TestRun startTestRun = StartV3TestRun.builder()
                 .testSetName("test set#1")
                 .description("test")
-                .startTime(LocalDateTime.now())
+                .startTime(ZonedDateTime.now())
                 .build();
         HttpEntity<StartV3TestRun> httpEntity = new HttpEntity<>(startTestRun, headers);
         ResponseEntity<UUID> response = new ResponseEntity<>(uuid, HttpStatus.OK);
