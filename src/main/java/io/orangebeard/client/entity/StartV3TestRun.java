@@ -3,7 +3,6 @@ package io.orangebeard.client.entity;
 import java.time.ZonedDateTime;
 import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -20,7 +19,6 @@ public class StartV3TestRun {
 
     private String testSetName;
     private String description;
-    @JsonSerialize(using = DateSerializer.class)
     private ZonedDateTime startTime;
     private Set<Attribute> attributes;
     private Set<ChangedComponent> changedComponents;

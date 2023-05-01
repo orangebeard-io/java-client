@@ -1,6 +1,5 @@
 package io.orangebeard.client;
 
-import io.orangebeard.client.entity.FinishTestRun;
 import io.orangebeard.client.entity.FinishV3TestRun;
 import io.orangebeard.client.entity.StartV3TestRun;
 import io.orangebeard.client.entity.attachment.Attachment;
@@ -210,6 +209,19 @@ public class OrangebeardV3Client {
         } else {
             LOGGER.warn(CONNECTION_FAILED);
             return null;
+        }
+    }
+
+    public void sendLogBatch(List<Log> logs) {
+        if (this.connectionWithOrangebeardIsValid) {
+            HttpEntity<List<Log>> request = new HttpEntity<>(logs, this.getAuthorizationHeaders(String.valueOf(accessToken)));
+            this.restTemplate.exchange(
+                    String.format("%s/listener/v3/%s/log/batch", this.endpoint, this.projectName),
+                    HttpMethod.POST,
+                    request,
+                    Void.class);
+        } else {
+            LOGGER.warn(CONNECTION_FAILED);
         }
     }
 
