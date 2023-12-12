@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static io.orangebeard.client.OrangebeardProperty.ACCESS_TOKEN;
 import static io.orangebeard.client.OrangebeardProperty.DESCRIPTION;
@@ -22,6 +22,7 @@ import static io.orangebeard.client.OrangebeardProperty.ENDPOINT;
 import static io.orangebeard.client.OrangebeardProperty.LOGS_AT_END_OF_TEST;
 import static io.orangebeard.client.OrangebeardProperty.LOG_LEVEL;
 import static io.orangebeard.client.OrangebeardProperty.PROJECT;
+import static io.orangebeard.client.OrangebeardProperty.REFERENCE_URL;
 import static io.orangebeard.client.OrangebeardProperty.TESTSET;
 import static io.orangebeard.client.OrangebeardProperty.TEST_RUN_UUID;
 
@@ -139,7 +140,7 @@ public class OrangebeardProperties {
         }
     }
 
-    private void readPropertiesWith(Function<String, String> lookupFunc) {
+    private void readPropertiesWith(UnaryOperator<String> lookupFunc) {
         this.endpoint = lookupWithDefault(ENDPOINT, lookupFunc, this.endpoint);
         this.accessToken = lookupUUIDWithDefault(ACCESS_TOKEN, lookupFunc, this.accessToken);
         this.projectName = lookupWithDefault(PROJECT, lookupFunc, this.projectName);
@@ -149,10 +150,13 @@ public class OrangebeardProperties {
         this.logsAtEndOfTest = lookUpBooleanWithDefault(LOGS_AT_END_OF_TEST, lookupFunc, this.logsAtEndOfTest);
         this.attributes.addAll(extractAttributes(lookupFunc.apply(OrangebeardProperty.ATTRIBUTES.getPropertyName())));
         this.testRunUUID = lookupUUIDWithDefault(TEST_RUN_UUID, lookupFunc, this.testRunUUID);
+        if(lookupWithDefault(REFERENCE_URL, lookupFunc, null) != null) {
+            this.attributes.add(new Attribute("reference_url", lookupWithDefault(REFERENCE_URL, lookupFunc, null)));
+        }
     }
 
     @SuppressWarnings("SameParameterValue")
-    private boolean lookUpBooleanWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, boolean defaultValue) {
+    private boolean lookUpBooleanWithDefault(OrangebeardProperty property, UnaryOperator<String> lookupFunc, boolean defaultValue) {
         String temp = lookupFunc.apply(property.getPropertyName());
         if (temp == null) {
             return defaultValue;
@@ -160,13 +164,13 @@ public class OrangebeardProperties {
         return Boolean.parseBoolean(temp);
     }
 
-    private String lookupWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, String defaultValue) {
+    private String lookupWithDefault(OrangebeardProperty property, UnaryOperator<String> lookupFunc, String defaultValue) {
         String temp = lookupFunc.apply(property.getPropertyName());
         return temp == null ? defaultValue : temp;
     }
 
     @SuppressWarnings("SameParameterValue")
-    private UUID lookupUUIDWithDefault(OrangebeardProperty property, Function<String, String> lookupFunc, UUID defaultValue) {
+    private UUID lookupUUIDWithDefault(OrangebeardProperty property, UnaryOperator<String> lookupFunc, UUID defaultValue) {
         String temp = lookupFunc.apply(property.getPropertyName());
         if (temp == null || temp.trim().isEmpty()) {
             return defaultValue;
@@ -179,32 +183,32 @@ public class OrangebeardProperties {
         }
     }
 
-    private LogLevel lookupLogLevel(Function<String, String> lookupFunc) {
-        String logLevel = lookupFunc.apply(LOG_LEVEL.getPropertyName());
+    private LogLevel lookupLogLevel(UnaryOperator<String> lookupFunc) {
+        String logLevelProperty = lookupFunc.apply(LOG_LEVEL.getPropertyName());
         try {
-            return logLevel == null ? this.logLevel : LogLevel.valueOf(logLevel);
+            return logLevelProperty == null ? logLevel : LogLevel.valueOf(logLevelProperty);
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(LOG_LEVEL.getPropertyName() + "is not a valid log level! Choose DEBUG, INFO, WARN or ERROR. INFO is now used by default.");
-            return this.logLevel;
+            LOGGER.warn(String.format("%s is not a valid log level! Choose DEBUG, INFO, WARN or ERROR. INFO is now used by default.", LOG_LEVEL.getPropertyName()));
+            return logLevel;
         }
     }
 
     private Set<Attribute> extractAttributes(String attributeString) {
-        Set<Attribute> attributes = new HashSet<>();
+        Set<Attribute> attrs = new HashSet<>();
 
         if (attributeString == null || attributeString.isEmpty()) {
-            return attributes;
+            return attrs;
         }
 
         for (String attribute : attributeString.split(";")) {
             if (attribute.contains(":")) {
                 String[] keyValuePair = attribute.trim().split(":", 2);
-                attributes.add(new Attribute(keyValuePair[0].trim(), keyValuePair[1].trim()));
+                attrs.add(new Attribute(keyValuePair[0].trim(), keyValuePair[1].trim()));
             } else {
-                attributes.add(new Attribute(attribute.trim()));
+                attrs.add(new Attribute(attribute.trim()));
             }
         }
-        return attributes;
+        return attrs;
     }
 
     public boolean logShouldBeDispatchedToOrangebeard(LogLevel individualLogLevel) {

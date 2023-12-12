@@ -45,7 +45,7 @@ class OrangebeardPropertiesTest {
         assertThat(orangebeardProperties.getAttributes()).containsOnly(
                 new Attribute("key", "value"),
                 new Attribute("value"),
-                new Attribute("test", "testsys temslim"));
+                new Attribute("test", "testsys tem:slim"));
     }
 
     @Test
@@ -56,7 +56,7 @@ class OrangebeardPropertiesTest {
                     assertThat(orangebeardProperties.getAttributes()).containsOnly(
                             new Attribute("key", "value"),
                             new Attribute("value"),
-                            new Attribute("test", "testsys temslim"),
+                            new Attribute("test", "testsys tem:slim"),
                             new Attribute("env", "value"),
                             new Attribute("piet", "pietersen"));
                 });
@@ -106,7 +106,7 @@ class OrangebeardPropertiesTest {
         assertThat(orangebeardProperties.getAttributes()).containsOnly(
                 new Attribute("key", "value"),
                 new Attribute("value"),
-                new Attribute("test", "testsys temslim"),
+                new Attribute("test", "testsys tem:slim"),
                 new Attribute("env", "value"),
                 new Attribute("piet", "pietersen"));
         System.clearProperty("orangebeard.attributes");
@@ -120,7 +120,7 @@ class OrangebeardPropertiesTest {
         assertThat(orangebeardProperties.getAttributes()).containsOnly(
                 new Attribute("key", "value"),
                 new Attribute("value"),
-                new Attribute("test", "testsys temslim"));
+                new Attribute("test", "testsys tem:slim"));
         System.clearProperty("orangebeard.attributes");
     }
 
