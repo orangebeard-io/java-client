@@ -64,9 +64,8 @@ public class OrangebeardAsyncV3Client implements V3Client {
 
     @Override
     public void finishTestRun(UUID testRunUUID, FinishV3TestRun finishTestRun) {
-        CompletableFuture<?>[] allTasks = tasks.values().toArray(new CompletableFuture[0]);
-        CompletableFuture.allOf(allTasks).join(); //Await completion of all tasks that were started
-
+        CompletableFuture<Void> allTasks = CompletableFuture.allOf(tasks.values().toArray(new CompletableFuture[0]));
+        allTasks.join(); //await completion of all tasks
         client.finishTestRun(uuidMap.get(testRunUUID), finishTestRun);
     }
 
@@ -270,7 +269,7 @@ public class OrangebeardAsyncV3Client implements V3Client {
                     new Attachment.AttachmentMetaData(
                             uuidMap.get(meta.getTestRunUUID()),
                             uuidMap.get(meta.getTestUUID()),
-                            uuidMap.get(meta.getStepUUID()),
+                            meta.getStepUUID() == null ? null : uuidMap.get(meta.getStepUUID()),
                             (UUID) logUUID,
                             meta.getAttachmentTime()
                     )
