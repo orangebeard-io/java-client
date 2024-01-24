@@ -23,10 +23,10 @@ public class Attribute {
 
 
     /**
-     * New attribute. Colons and Semicolons are removed because these are special values.
+     * New attribute.
      */
     public Attribute(String value) {
-        this.value = value.replace(":", "").replace(";", "").trim();
+        this.value = value.trim();
     }
 
     @Override
