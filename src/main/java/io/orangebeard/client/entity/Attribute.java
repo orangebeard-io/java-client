@@ -14,18 +14,19 @@ public class Attribute {
     private String value;
 
     /**
-     * New attribute. Colons and Semicolons are removed because these are special values.
+     * New attribute.
      */
     public Attribute(String key, String value) {
-        this.key = key.replace(":", "").replace(";", "").trim();
-        this.value = value.replace(":", "").replace(";", "").trim();
+        this.key = key.trim();
+        this.value = value.trim();
     }
 
+
     /**
-     * New attribute. Colons and Semicolons are removed because these are special values.
+     * New attribute.
      */
     public Attribute(String value) {
-        this.value = value.replace(":", "").replace(";", "").trim();
+        this.value = value.trim();
     }
 
     @Override
