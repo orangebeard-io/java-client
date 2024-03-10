@@ -79,7 +79,7 @@ public class OrangebeardV3Client {
         this.connectionWithOrangebeardIsValid = connectionWithOrangebeardIsValid;
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public UUID startTestRun(StartV3TestRun testRun) {
         if (this.connectionWithOrangebeardIsValid) {
             try {
@@ -96,7 +96,7 @@ public class OrangebeardV3Client {
         return null;
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public void startAnnouncedTestRun(UUID testRunUUID) {
         if (connectionWithOrangebeardIsValid) {
             try {
@@ -109,7 +109,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public void finishTestRun(UUID testRunUUID, FinishV3TestRun finishTestRun) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<FinishV3TestRun> request = new HttpEntity<>(finishTestRun, this.getAuthorizationHeaders(String.valueOf(accessToken)));
@@ -123,7 +123,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public List<Suite> startSuite(StartSuite startSuite) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<StartSuite> request = new HttpEntity<>(startSuite, this.getAuthorizationHeaders(String.valueOf(accessToken)));
@@ -139,7 +139,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public UUID startTest(StartTest startTest) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<StartTest> request = new HttpEntity<>(startTest, this.getAuthorizationHeaders(String.valueOf(accessToken)));
@@ -153,7 +153,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public void finishTest(UUID testUUID, FinishTest finishTest) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<FinishTest> request = new HttpEntity<>(finishTest, this.getAuthorizationHeaders(String.valueOf(accessToken)));
@@ -164,7 +164,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public UUID startStep(StartStep startStep) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<StartStep> request = new HttpEntity<>(startStep, this.getAuthorizationHeaders(String.valueOf(accessToken)));
@@ -178,7 +178,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public void finishStep(UUID stepUUID, FinishStep finishStep) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<FinishStep> request = new HttpEntity<>(finishStep, this.getAuthorizationHeaders(String.valueOf(accessToken)));
@@ -192,7 +192,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public UUID log(Log log) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<Log> request = new HttpEntity<>(log, this.getAuthorizationHeaders(String.valueOf(accessToken)));
@@ -207,7 +207,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public void sendLogBatch(List<Log> logs) {
         if (this.connectionWithOrangebeardIsValid) {
             HttpEntity<List<Log>> request = new HttpEntity<>(logs, this.getAuthorizationHeaders(String.valueOf(accessToken)));
@@ -221,7 +221,7 @@ public class OrangebeardV3Client {
         }
     }
 
-    @Retryable(retryFor = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
+    @Retryable(value = {Exception.class}, maxAttempts = 4, backoff = @Backoff(delay = 2000, multiplier = 2))
     public UUID sendAttachment(Attachment attachment) {
         if (this.connectionWithOrangebeardIsValid) {
             LinkedMultiValueMap<String, String> filePartHeaders = new LinkedMultiValueMap<>();
