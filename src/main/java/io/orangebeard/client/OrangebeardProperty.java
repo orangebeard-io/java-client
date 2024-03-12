@@ -7,7 +7,8 @@ public enum OrangebeardProperty {
     ENDPOINT("orangebeard.endpoint"),
     PROJECT("orangebeard.project"),
     TESTSET("orangebeard.testset"),
-    ACCESS_TOKEN("orangebeard.accessToken"),
+    ACCESS_TOKEN("orangebeard.accessToken"), //to be deprecated
+    TOKEN("orangebeard.token"),
     DESCRIPTION("orangebeard.description"),
     LOG_LEVEL("orangebeard.logLevel"),
     ATTRIBUTES("orangebeard.attributes"),

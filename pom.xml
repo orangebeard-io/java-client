@@ -24,6 +24,7 @@
         <jackson.version>2.15.1</jackson.version>
         <slf4j.version>2.0.5</slf4j.version>
         <spring.version>5.3.32</spring.version>
+        <org.json.version>20240303</org.json.version>
     </properties>
 
     <scm>
@@ -75,6 +76,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>${org.json.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -31,6 +31,12 @@ class OrangebeardPropertiesTest {
     }
 
     @Test
+    void properties_can_be_loaded_from_json_file() {
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties();
+        assertThat(orangebeardProperties.requiredValuesArePresent()).isTrue();
+    }
+
+    @Test
     void when_no_property_file_is_present_no_exception_is_thrown() {
         OrangebeardProperties orangebeardProperties = new OrangebeardProperties("piet.properties");
 
