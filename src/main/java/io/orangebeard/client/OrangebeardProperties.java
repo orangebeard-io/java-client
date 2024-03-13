@@ -85,17 +85,28 @@ public class OrangebeardProperties {
         this.propertyFilePresent = false;
     }
 
-    OrangebeardProperties(String propertyFile) {
+    OrangebeardProperties(String propertyFile, String jsonFileName) {
         readPropertyFile(propertyFile);
-        readPropertyJsonFile();
+        readPropertyJsonFile(jsonFileName);
         readSystemProperties();
         readEnvironmentVariables(PropertyNameStyle.DOT);
         readEnvironmentVariables(PropertyNameStyle.UNDERSCORE);
     }
 
+    OrangebeardProperties(String propertyFile) {
+        readPropertyFile(propertyFile);
+        readPropertyJsonFile(ORANGEBEARD_JSON_FILE);
+        readSystemProperties();
+        readEnvironmentVariables(PropertyNameStyle.DOT);
+        readEnvironmentVariables(PropertyNameStyle.UNDERSCORE);
+    }
+
+    /**
+     * Automatic configuration constructor
+     */
     @SuppressWarnings("unused")
     public OrangebeardProperties() {
-        this(ORANGEBEARD_PROPERTY_FILE);
+        this(ORANGEBEARD_PROPERTY_FILE, ORANGEBEARD_JSON_FILE);
     }
 
     public boolean requiredValuesArePresent() {
@@ -135,8 +146,8 @@ public class OrangebeardProperties {
         }
     }
 
-    private void readPropertyJsonFile() {
-        JSONObject jsonConfig = getJsonConfig();
+    private void readPropertyJsonFile(String jsonFileName) {
+        JSONObject jsonConfig = getJsonConfig(jsonFileName);
         if (jsonConfig != null) {
             readPropertiesWith(key -> getJsonConfigValue(key, jsonConfig));
         }
@@ -154,10 +165,10 @@ public class OrangebeardProperties {
         }
     }
 
-    private static JSONObject getJsonConfig() {
+    private static JSONObject getJsonConfig(String jsonFileName) {
         Path currentDir = Paths.get("").toAbsolutePath();
         while (currentDir != null) {
-            Path filePath = currentDir.resolve(ORANGEBEARD_JSON_FILE);
+            Path filePath = currentDir.resolve(jsonFileName);
             if (Files.exists(filePath)) {
                 try {
                     String content = Files.readString(filePath, StandardCharsets.UTF_8);

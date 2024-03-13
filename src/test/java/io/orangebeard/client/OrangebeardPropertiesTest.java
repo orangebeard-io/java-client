@@ -15,7 +15,7 @@ class OrangebeardPropertiesTest {
 
     @Test
     void property_file_is_read_correctly_with_specified_filename() {
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("orangebeardpropertiestest.properties");
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("orangebeardpropertiestest.properties", "no.json");
 
         assertThat(orangebeardProperties.requiredValuesArePresent()).isTrue();
         assertThat(orangebeardProperties.isPropertyFilePresent()).isTrue();
@@ -32,13 +32,16 @@ class OrangebeardPropertiesTest {
 
     @Test
     void properties_can_be_loaded_from_json_file() {
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties();
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("foo.properties", "orangebeard.json");
         assertThat(orangebeardProperties.requiredValuesArePresent()).isTrue();
+        assertThat(orangebeardProperties.getAttributes()).containsOnly(
+                new Attribute("Key 1", "Some value"),
+                new Attribute("Tag value"));
     }
 
     @Test
-    void when_no_property_file_is_present_no_exception_is_thrown() {
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("piet.properties");
+    void when_no_property_file_or_json_file_is_present_no_exception_is_thrown() {
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("piet.properties", "bar.json");
 
         assertThat(orangebeardProperties.requiredValuesArePresent()).isFalse();
         assertThat(orangebeardProperties.isPropertyFilePresent()).isFalse();
@@ -46,7 +49,7 @@ class OrangebeardPropertiesTest {
 
     @Test
     void splitting_attributes() {
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties");
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties", "no.json");
 
         assertThat(orangebeardProperties.getAttributes()).containsOnly(
                 new Attribute("key", "value"),
@@ -58,7 +61,7 @@ class OrangebeardPropertiesTest {
     void reading_attributes_from_environment_variables() throws Exception {
         withEnvironmentVariable("orangebeard.attributes", "env:value;piet:pietersen")
                 .execute(() -> {
-                    OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties");
+                    OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties", "no.json");
                     assertThat(orangebeardProperties.getAttributes()).containsOnly(
                             new Attribute("key", "value"),
                             new Attribute("value"),
@@ -100,7 +103,6 @@ class OrangebeardPropertiesTest {
     @Test
     void when_logs_at_end_is_invalid_it_is_set_to_false_by_default() {
         OrangebeardProperties orangebeardProperties = new OrangebeardProperties("invalidbooleanlogsatendoftest.properties");
-
         assertThat(orangebeardProperties.isLogsAtEndOfTest()).isFalse();
     }
 
@@ -108,7 +110,7 @@ class OrangebeardPropertiesTest {
     void reading_attributes_from_system_properties() {
         System.setProperty("orangebeard.attributes", "env:value;piet :pietersen ;");
 
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties");
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties", "no.json");
         assertThat(orangebeardProperties.getAttributes()).containsOnly(
                 new Attribute("key", "value"),
                 new Attribute("value"),
@@ -122,7 +124,7 @@ class OrangebeardPropertiesTest {
     void reading_attributes_from_null_system_properties() {
         System.setProperty("orangebeard.attributes", "");
 
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties");
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties", "no.json");
         assertThat(orangebeardProperties.getAttributes()).containsOnly(
                 new Attribute("key", "value"),
                 new Attribute("value"),
@@ -134,7 +136,7 @@ class OrangebeardPropertiesTest {
     void reading_invalid_UUID_does_not_prevent_reading_other_properties() {
         System.setProperty("orangebeard.attributes", "");
 
-        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01_invalid_accessToken.properties");
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01_invalid_accessToken.properties", "no.json");
         assertThat(orangebeardProperties.getProjectName()).isEqualTo("piet_personal");
 
         System.clearProperty("orangebeard.attributes");

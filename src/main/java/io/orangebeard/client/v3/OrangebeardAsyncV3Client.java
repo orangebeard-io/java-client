@@ -31,11 +31,14 @@ public class OrangebeardAsyncV3Client implements V3Client {
         uuidMap = new ConcurrentHashMap<>();
     }
 
-    public OrangebeardAsyncV3Client() {
-        OrangebeardProperties configuration = new OrangebeardProperties();
+    public OrangebeardAsyncV3Client(OrangebeardProperties configuration) {
         client = new OrangebeardV3Client(configuration.getEndpoint(), configuration.getAccessToken(), configuration.getProjectName(), configuration.requiredValuesArePresent());
         tasks = new ConcurrentHashMap<>();
         uuidMap = new ConcurrentHashMap<>();
+    }
+
+    public OrangebeardAsyncV3Client() {
+        this(new OrangebeardProperties());
     }
 
     private CompletableFuture<Object> parentTask(UUID taskUUID) {
