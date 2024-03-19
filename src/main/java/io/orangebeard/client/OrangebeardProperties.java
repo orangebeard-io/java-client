@@ -1,20 +1,26 @@
 package io.orangebeard.client;
 
 import io.orangebeard.client.entity.Attribute;
-
 import io.orangebeard.client.entity.log.LogLevel;
 
-import lombok.Getter;
-import lombok.ToString;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
+import lombok.Getter;
+import lombok.ToString;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.orangebeard.client.OrangebeardProperty.ACCESS_TOKEN;
 import static io.orangebeard.client.OrangebeardProperty.DESCRIPTION;
@@ -25,11 +31,13 @@ import static io.orangebeard.client.OrangebeardProperty.PROJECT;
 import static io.orangebeard.client.OrangebeardProperty.REFERENCE_URL;
 import static io.orangebeard.client.OrangebeardProperty.TESTSET;
 import static io.orangebeard.client.OrangebeardProperty.TEST_RUN_UUID;
+import static io.orangebeard.client.OrangebeardProperty.TOKEN;
 
 @ToString
 @Getter
 public class OrangebeardProperties {
     private static final String ORANGEBEARD_PROPERTY_FILE = "orangebeard.properties";
+    private static final String ORANGEBEARD_JSON_FILE = "orangebeard.json";
     private static final Logger LOGGER = LoggerFactory.getLogger(OrangebeardProperties.class);
     private String endpoint;
     private UUID accessToken;
@@ -77,16 +85,28 @@ public class OrangebeardProperties {
         this.propertyFilePresent = false;
     }
 
-    OrangebeardProperties(String propertyFile) {
+    OrangebeardProperties(String propertyFile, String jsonFileName) {
         readPropertyFile(propertyFile);
+        readPropertyJsonFile(jsonFileName);
         readSystemProperties();
         readEnvironmentVariables(PropertyNameStyle.DOT);
         readEnvironmentVariables(PropertyNameStyle.UNDERSCORE);
     }
 
+    OrangebeardProperties(String propertyFile) {
+        readPropertyFile(propertyFile);
+        readPropertyJsonFile(ORANGEBEARD_JSON_FILE);
+        readSystemProperties();
+        readEnvironmentVariables(PropertyNameStyle.DOT);
+        readEnvironmentVariables(PropertyNameStyle.UNDERSCORE);
+    }
+
+    /**
+     * Automatic configuration constructor
+     */
     @SuppressWarnings("unused")
     public OrangebeardProperties() {
-        this(ORANGEBEARD_PROPERTY_FILE);
+        this(ORANGEBEARD_PROPERTY_FILE, ORANGEBEARD_JSON_FILE);
     }
 
     public boolean requiredValuesArePresent() {
@@ -98,11 +118,9 @@ public class OrangebeardProperties {
     }
 
     public void checkPropertiesArePresent() {
-        if (!requiredValuesArePresent() && !propertyFilePresent) {
-            LOGGER.error("Required Orangebeard properties are missing. Not all environment variables are present, and orangebeard.properties cannot be found!\n" + requiredPropertiesToString());
-        }
         if (!requiredValuesArePresent()) {
-            LOGGER.error("Required Orangebeard properties are missing. Not all environment variables are present, and/or orangebeard.properties misses required values!\n" + requiredPropertiesToString());
+            LOGGER.error("Required Orangebeard properties are missing. Not all environment variables are present, " +
+                    "and/or orangebeard.properties misses required values!\n{}", requiredPropertiesToString());
         }
     }
 
@@ -128,6 +146,13 @@ public class OrangebeardProperties {
         }
     }
 
+    private void readPropertyJsonFile(String jsonFileName) {
+        JSONObject jsonConfig = getJsonConfig(jsonFileName);
+        if (jsonConfig != null) {
+            readPropertiesWith(key -> getJsonConfigValue(key, jsonConfig));
+        }
+    }
+
     private void readSystemProperties() {
         readPropertiesWith(System::getProperty);
     }
@@ -140,9 +165,37 @@ public class OrangebeardProperties {
         }
     }
 
+    private static JSONObject getJsonConfig(String jsonFileName) {
+        Path currentDir = Paths.get("").toAbsolutePath();
+        while (currentDir != null) {
+            Path filePath = currentDir.resolve(jsonFileName);
+            if (Files.exists(filePath)) {
+                try {
+                    String content = Files.readString(filePath, StandardCharsets.UTF_8);
+                    return new JSONObject(content);
+                } catch (IOException e) {
+                    return null;
+                }
+            }
+            currentDir = currentDir.getParent();
+        }
+        return null;
+    }
+
+    private String getJsonConfigValue(String key, JSONObject jsonConfiguration) {
+        try {
+            return jsonConfiguration.get(key.replace("orangebeard.", "")).toString();
+        } catch (JSONException e) {
+            return null;
+        }
+    }
+
     private void readPropertiesWith(UnaryOperator<String> lookupFunc) {
         this.endpoint = lookupWithDefault(ENDPOINT, lookupFunc, this.endpoint);
-        this.accessToken = lookupUUIDWithDefault(ACCESS_TOKEN, lookupFunc, this.accessToken);
+        this.accessToken = lookupUUIDWithDefault(TOKEN, lookupFunc, this.accessToken);
+        if (this.accessToken == null) {
+            this.accessToken = lookupUUIDWithDefault(ACCESS_TOKEN, lookupFunc, null);
+        }
         this.projectName = lookupWithDefault(PROJECT, lookupFunc, this.projectName);
         this.testSetName = lookupWithDefault(TESTSET, lookupFunc, this.testSetName);
         this.description = lookupWithDefault(DESCRIPTION, lookupFunc, this.description);
@@ -150,7 +203,7 @@ public class OrangebeardProperties {
         this.logsAtEndOfTest = lookUpBooleanWithDefault(LOGS_AT_END_OF_TEST, lookupFunc, this.logsAtEndOfTest);
         this.attributes.addAll(extractAttributes(lookupFunc.apply(OrangebeardProperty.ATTRIBUTES.getPropertyName())));
         this.testRunUUID = lookupUUIDWithDefault(TEST_RUN_UUID, lookupFunc, this.testRunUUID);
-        if(lookupWithDefault(REFERENCE_URL, lookupFunc, null) != null) {
+        if (lookupWithDefault(REFERENCE_URL, lookupFunc, null) != null) {
             this.attributes.add(new Attribute("reference_url", lookupWithDefault(REFERENCE_URL, lookupFunc, null)));
         }
     }
@@ -200,14 +253,25 @@ public class OrangebeardProperties {
             return attrs;
         }
 
-        for (String attribute : attributeString.split(";")) {
-            if (attribute.contains(":")) {
-                String[] keyValuePair = attribute.trim().split(":", 2);
-                attrs.add(new Attribute(keyValuePair[0].trim(), keyValuePair[1].trim()));
-            } else {
-                attrs.add(new Attribute(attribute.trim()));
+        if (attributeString.startsWith("[")) {
+            JSONArray jsonAttrs = new JSONArray(attributeString);
+            for (Object attribute : jsonAttrs) {
+                JSONObject attr = (JSONObject) attribute;
+                attrs.add(attr.has("key") ?
+                        new Attribute(attr.getString("key"), attr.getString("value")) :
+                        new Attribute(attr.getString("value")));
+            }
+        } else {
+            for (String attribute : attributeString.split(";")) {
+                if (attribute.contains(":")) {
+                    String[] keyValuePair = attribute.trim().split(":", 2);
+                    attrs.add(new Attribute(keyValuePair[0].trim(), keyValuePair[1].trim()));
+                } else {
+                    attrs.add(new Attribute(attribute.trim()));
+                }
             }
         }
+
         return attrs;
     }
 
@@ -217,7 +281,6 @@ public class OrangebeardProperties {
         return individualLogLevelVal >= logLevelVal;
     }
 
-    @SuppressWarnings("DuplicateBranchesInSwitch")
     private int convertToInt(LogLevel logLevel) {
         switch (logLevel) {
             case DEBUG:

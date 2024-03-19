@@ -1,5 +1,6 @@
 package io.orangebeard.client.v3;
 
+import io.orangebeard.client.OrangebeardProperties;
 import io.orangebeard.client.OrangebeardV3Client;
 import io.orangebeard.client.entity.FinishV3TestRun;
 import io.orangebeard.client.entity.StartV3TestRun;
@@ -28,6 +29,16 @@ public class OrangebeardAsyncV3Client implements V3Client {
         client = new OrangebeardV3Client(endpoint, accessToken, projectName, connectionWithOrangebeardIsValid);
         tasks = new ConcurrentHashMap<>();
         uuidMap = new ConcurrentHashMap<>();
+    }
+
+    public OrangebeardAsyncV3Client(OrangebeardProperties configuration) {
+        client = new OrangebeardV3Client(configuration.getEndpoint(), configuration.getAccessToken(), configuration.getProjectName(), configuration.requiredValuesArePresent());
+        tasks = new ConcurrentHashMap<>();
+        uuidMap = new ConcurrentHashMap<>();
+    }
+
+    public OrangebeardAsyncV3Client() {
+        this(new OrangebeardProperties());
     }
 
     private CompletableFuture<Object> parentTask(UUID taskUUID) {

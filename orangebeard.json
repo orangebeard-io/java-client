@@ -1,0 +1,16 @@
+{
+  "endpoint": "https://host.orangebeard.app",
+  "token": "722f2956-4ef9-455f-a8aa-2be5408ec6d0",
+  "project": "my-project",
+  "testset": "my-test-set",
+  "description": "A run from Java",
+  "attributes": [
+    {
+      "key": "Key 1",
+      "value": "Some value"
+    },
+    {
+      "value": "Tag value"
+    }
+  ]
+}
