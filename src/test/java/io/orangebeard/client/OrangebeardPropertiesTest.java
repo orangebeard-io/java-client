@@ -5,10 +5,10 @@ import io.orangebeard.client.entity.Attribute;
 import io.orangebeard.client.entity.log.LogLevel;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
 import java.util.UUID;
 
-import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OrangebeardPropertiesTest {
@@ -58,17 +58,15 @@ class OrangebeardPropertiesTest {
     }
 
     @Test
-    void reading_attributes_from_environment_variables() throws Exception {
-        withEnvironmentVariable("orangebeard.attributes", "env:value;piet:pietersen")
-                .execute(() -> {
-                    OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties", "no.json");
-                    assertThat(orangebeardProperties.getAttributes()).containsOnly(
-                            new Attribute("key", "value"),
-                            new Attribute("value"),
-                            new Attribute("test", "testsys tem:slim"),
-                            new Attribute("env", "value"),
-                            new Attribute("piet", "pietersen"));
-                });
+    @SetEnvironmentVariable(key = "orangebeard.attributes", value = "env:value;piet:pietersen")
+    void reading_attributes_from_environment_variables() {
+        OrangebeardProperties orangebeardProperties = new OrangebeardProperties("attributestest01.properties", "no.json");
+        assertThat(orangebeardProperties.getAttributes()).containsOnly(
+                new Attribute("key", "value"),
+                new Attribute("value"),
+                new Attribute("test", "testsys tem:slim"),
+                new Attribute("env", "value"),
+                new Attribute("piet", "pietersen"));
     }
 
     @Test
