@@ -4,6 +4,9 @@ import io.orangebeard.client.OrangebeardProperties;
 import io.orangebeard.client.OrangebeardV3Client;
 import io.orangebeard.client.entity.FinishV3TestRun;
 import io.orangebeard.client.entity.StartV3TestRun;
+import io.orangebeard.client.entity.alerting.FinishAlertRun;
+import io.orangebeard.client.entity.alerting.ReportAlert;
+import io.orangebeard.client.entity.alerting.StartAlertRun;
 import io.orangebeard.client.entity.attachment.Attachment;
 import io.orangebeard.client.entity.log.Log;
 import io.orangebeard.client.entity.step.FinishStep;
@@ -114,7 +117,7 @@ public class OrangebeardAsyncV3Client implements V3Client {
 
             List<Suite> suites = client.startSuite(realStartSuite);
             List<UUID> actualUUIDs = suites.stream().map(
-                    Suite::getSuiteUUID).collect(Collectors.toList());
+                    Suite::getSuiteUUID).toList();
 
             startSuiteTask.complete(actualUUIDs);
             return CompletableFuture.supplyAsync(() -> actualUUIDs);
@@ -288,6 +291,47 @@ public class OrangebeardAsyncV3Client implements V3Client {
             UUID actualUUID = client.sendAttachment(realAttachment);
             attachmentTask.complete(actualUUID);
             uuidMap.put(temporaryUUID, actualUUID);
+            return CompletableFuture.supplyAsync(() -> actualUUID);
+        });
+        return temporaryUUID;
+    }
+
+    @Override
+    public UUID startAlertRun(StartAlertRun alertRun) {
+        UUID temporaryUUID = UUID.randomUUID();
+        CompletableFuture<Object> startAlertRuntask = new CompletableFuture<>();
+        tasks.put(temporaryUUID, startAlertRuntask);
+
+        CompletableFuture.runAsync(() -> {
+            UUID actualUUID = client.startAlertRun(alertRun);
+            uuidMap.put(temporaryUUID, actualUUID);
+            startAlertRuntask.complete(actualUUID);
+        });
+        return temporaryUUID;
+    }
+
+    @Override
+    public void finishAlertRun(FinishAlertRun alertRun) {
+        CompletableFuture<Void> allTasks = CompletableFuture.allOf(tasks.values().toArray(new CompletableFuture[0]));
+        allTasks.join(); //await completion of all tasks
+
+        UUID realAlertRunUUID = uuidMap.get(alertRun.getAlertRunUUID());
+        alertRun.setAlertRunUUID(realAlertRunUUID);
+        client.finishAlertRun(alertRun);
+    }
+
+    @Override
+    public UUID reportAlert(ReportAlert alert) {
+        UUID temporaryUUID = UUID.randomUUID();
+        CompletableFuture<Object> parent = parentTask(alert.getAlertRunUUID());
+        CompletableFuture<Object> reportAlertTask = new CompletableFuture<>();
+        tasks.put(temporaryUUID, reportAlertTask);
+
+        parent.thenCompose(parentUUID -> {
+            alert.setAlertRunUUID((UUID) parentUUID);
+            UUID actualUUID = client.reportAlert(alert);
+            uuidMap.put(temporaryUUID, actualUUID);
+            reportAlertTask.complete(actualUUID);
             return CompletableFuture.supplyAsync(() -> actualUUID);
         });
         return temporaryUUID;

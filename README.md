@@ -13,7 +13,7 @@
       alt="MVN Version" />
   </a>
   <a href="https://github.com/orangebeard-io/java-client/actions">
-    <img src="https://img.shields.io/github/workflow/status/orangebeard-io/java-client/release?style=flat-square"
+    <img src="https://img.shields.io/github/actions/workflow/status/orangebeard-io/java-client/master.yml?branch=master&style=flat-square"
       alt="Build Status" />
   </a>
   <a href="https://github.com/orangebeard-io/java-client/blob/master/LICENSE.txt">
