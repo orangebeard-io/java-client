@@ -22,6 +22,7 @@ jobs:
       - name: Release Maven package
         uses:  WasiqB/maven-publish-action@v1
         with:
+          settings_path: ./.github/workflows/settings.xml
           server_id: staging
           maven_goals_phases: clean -P maven-release -DskipTests deploy
           gpg_private_key: ${{ secrets.gpg_private_key }}
