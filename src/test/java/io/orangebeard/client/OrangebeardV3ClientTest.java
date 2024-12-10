@@ -8,6 +8,16 @@ import io.orangebeard.client.entity.StartTestRun;
 
 import io.orangebeard.client.entity.StartV3TestRun;
 
+import io.orangebeard.client.entity.alerting.AlertRunStatus;
+import io.orangebeard.client.entity.alerting.FinishAlertRun;
+import io.orangebeard.client.entity.alerting.ReportAlert;
+import io.orangebeard.client.entity.alerting.ReportCodeQualityAlert;
+import io.orangebeard.client.entity.alerting.ReportSecurityAlert;
+import io.orangebeard.client.entity.alerting.Severity;
+import io.orangebeard.client.entity.alerting.StartAlertRun;
+import io.orangebeard.client.entity.alerting.Tool;
+import io.orangebeard.client.entity.alerting.security.Confidence;
+import io.orangebeard.client.entity.alerting.security.Evidence;
 import io.orangebeard.client.entity.attachment.Attachment;
 import io.orangebeard.client.entity.log.Log;
 import io.orangebeard.client.entity.log.LogLevel;
@@ -33,7 +43,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -306,5 +315,95 @@ class OrangebeardV3ClientTest {
 
         assert uuid.equals(response.getBody());
         verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/attachment", endpoint, projectName), POST, request, UUID.class);
+    }
+
+    @Test
+    void when_the_connection_is_valid_alert_run_can_be_started() {
+        UUID uuid = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
+        StartAlertRun alertRun = new StartAlertRun(
+                "Alert Set",
+                "test",
+                ZonedDateTime.now(),
+                Collections.emptySet(),
+                Tool.BURPSUITE
+        );
+
+        HttpEntity<StartAlertRun> httpEntity = new HttpEntity<>(alertRun, headers);
+        ResponseEntity<UUID> response = new ResponseEntity<>(uuid, HttpStatus.OK);
+
+        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
+
+        UUID alertRunUUID = orangebeardV3Client.startAlertRun(alertRun);
+
+        assert alertRunUUID.equals(uuid);
+        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/alert-run/start", endpoint, projectName), POST, httpEntity, UUID.class);
+    }
+
+    @Test
+    void when_the_connection_is_valid_alert_run_can_be_finished() {
+        UUID alertRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
+        FinishAlertRun finishAlertRun = new FinishAlertRun(alertRunUUID, AlertRunStatus.COMPLETED, ZonedDateTime.now());
+        HttpEntity<FinishAlertRun> httpEntity = new HttpEntity<>(finishAlertRun, headers);
+
+        when(restTemplate.exchange(anyString(), eq(PUT), eq(httpEntity), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatus.OK));
+
+        orangebeardV3Client.finishAlertRun(finishAlertRun);
+
+        verify(restTemplate, times(1)).exchange(format("http://localhost:8080/listener/v3/%s/alert-run/finish", projectName), PUT, httpEntity, Void.class);
+    }
+
+    @Test
+    void when_the_connection_is_valid_a_security_alert_can_be_reported() {
+        UUID alertRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
+        ReportAlert alert = new ReportSecurityAlert(
+                alertRunUUID,
+                "0",
+                "This is bad",
+                "An alert",
+                "Go fix",
+                Collections.emptySet(),
+                Confidence.FIRM,
+                new Evidence("https://vulnerable.url", "request", "response", "other"),
+                Severity.MEDIUM
+        );
+
+        HttpEntity<ReportAlert> httpEntity = new HttpEntity<>(alert, headers);
+        ResponseEntity<UUID> response = new ResponseEntity<>(UUID.randomUUID(), HttpStatus.OK);
+
+        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
+
+        UUID uuid = orangebeardV3Client.reportAlert(alert);
+
+        assert uuid.equals(response.getBody());
+        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/alert-run/report", endpoint, projectName), POST, httpEntity, UUID.class);
+    }
+
+    @Test
+    void when_the_connection_is_valid_a_code_quality_alert_can_be_reported() {
+        UUID alertRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
+        ReportAlert alert = new ReportCodeQualityAlert(
+                alertRunUUID,
+                "0",
+                "This is bad",
+                "An alert",
+                "Go fix",
+                Collections.emptySet(),
+                "smellId",
+                Severity.HIGH,
+                "className",
+                "methodName",
+                "fileName",
+                1
+        );
+
+        HttpEntity<ReportAlert> httpEntity = new HttpEntity<>(alert, headers);
+        ResponseEntity<UUID> response = new ResponseEntity<>(UUID.randomUUID(), HttpStatus.OK);
+
+        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
+
+        UUID uuid = orangebeardV3Client.reportAlert(alert);
+
+        assert uuid.equals(response.getBody());
+        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/alert-run/report", endpoint, projectName), POST, httpEntity, UUID.class);
     }
 }
