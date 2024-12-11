@@ -4,7 +4,7 @@
 
     <groupId>io.orangebeard</groupId>
     <artifactId>java-client</artifactId>
-    <version>3.0.3-SNAPSHOT</version>
+    <version>3.0.4-SNAPSHOT</version>
 
     <url>https://github.com/orangebeard-io/java-client</url>
     <name>Orangebeard.io Java Client</name>
@@ -23,7 +23,7 @@
         <junit.version>5.10.3</junit.version>
         <jackson.version>2.17.2</jackson.version>
         <slf4j.version>2.0.13</slf4j.version>
-        <spring.version>6.1.12</spring.version>
+        <spring.version>6.2.0</spring.version>
         <org.json.version>20240303</org.json.version>
     </properties>
 

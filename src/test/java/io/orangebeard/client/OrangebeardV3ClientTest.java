@@ -15,7 +15,7 @@ import io.orangebeard.client.entity.alerting.ReportCodeQualityAlert;
 import io.orangebeard.client.entity.alerting.ReportSecurityAlert;
 import io.orangebeard.client.entity.alerting.Severity;
 import io.orangebeard.client.entity.alerting.StartAlertRun;
-import io.orangebeard.client.entity.alerting.Tool;
+import io.orangebeard.client.entity.alerting.security.Tool;
 import io.orangebeard.client.entity.alerting.security.Confidence;
 import io.orangebeard.client.entity.alerting.security.Evidence;
 import io.orangebeard.client.entity.attachment.Attachment;

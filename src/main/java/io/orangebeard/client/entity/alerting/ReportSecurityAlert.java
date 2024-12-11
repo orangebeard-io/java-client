@@ -7,8 +7,10 @@ import io.orangebeard.client.entity.alerting.security.Evidence;
 import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class ReportSecurityAlert extends ReportAlert {
     private final String definitionID;
     private final Confidence confidence;
