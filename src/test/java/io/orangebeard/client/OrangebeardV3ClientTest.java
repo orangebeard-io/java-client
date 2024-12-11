@@ -15,6 +15,7 @@ import io.orangebeard.client.entity.alerting.ReportCodeQualityAlert;
 import io.orangebeard.client.entity.alerting.ReportSecurityAlert;
 import io.orangebeard.client.entity.alerting.Severity;
 import io.orangebeard.client.entity.alerting.StartAlertRun;
+import io.orangebeard.client.entity.alerting.StartSecurityAlertRun;
 import io.orangebeard.client.entity.alerting.security.Tool;
 import io.orangebeard.client.entity.alerting.security.Confidence;
 import io.orangebeard.client.entity.alerting.security.Evidence;
@@ -320,12 +321,12 @@ class OrangebeardV3ClientTest {
     @Test
     void when_the_connection_is_valid_alert_run_can_be_started() {
         UUID uuid = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
-        StartAlertRun alertRun = new StartAlertRun(
+        StartAlertRun alertRun = new StartSecurityAlertRun(
                 "Alert Set",
                 "test",
+                Tool.BURPSUITE,
                 ZonedDateTime.now(),
-                Collections.emptySet(),
-                Tool.BURPSUITE
+                Collections.emptySet()
         );
 
         HttpEntity<StartAlertRun> httpEntity = new HttpEntity<>(alertRun, headers);
