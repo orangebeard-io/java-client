@@ -4,14 +4,20 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.util.Map;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 public class Evidence {
-    private String url;
-    private String request;
-    private String response;
-    private String other;
+    String url;
+    String method;
+    int httpStatusCode;
+    Map<String, String> requestHeaders;
+    String requestBody = null;
+    Map<String, String> responseHeaders;
+    String responseBody = null;
+    String other = null;
 }
+
