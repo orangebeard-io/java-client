@@ -47,6 +47,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -364,7 +365,7 @@ class OrangebeardV3ClientTest {
                 "Go fix",
                 Collections.emptySet(),
                 Confidence.FIRM,
-                new Evidence("https://vulnerable.url", "request", "response", "other"),
+                new Evidence("https://vulnerable.url", "POST", 200, new HashMap<>(), "request", new HashMap<>(), "response", "other"),
                 Severity.MEDIUM
         );
 
