@@ -1,6 +1,7 @@
 package io.orangebeard.client;
 
 import io.orangebeard.client.entity.Attribute;
+import io.orangebeard.client.entity.ChangedComponent;
 import io.orangebeard.client.entity.log.LogLevel;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import org.json.JSONArray;
@@ -35,6 +37,7 @@ import static io.orangebeard.client.OrangebeardProperty.TOKEN;
 
 @ToString
 @Getter
+@AllArgsConstructor
 public class OrangebeardProperties {
     private static final String ORANGEBEARD_PROPERTY_FILE = "orangebeard.properties";
     private static final String ORANGEBEARD_JSON_FILE = "orangebeard.json";
@@ -49,14 +52,13 @@ public class OrangebeardProperties {
     private LogLevel logLevel = LogLevel.INFO;
     private boolean logsAtEndOfTest = false;
     private UUID testRunUUID;
+    private Set<ChangedComponent> sutComponents = new HashSet<>();
 
     private enum PropertyNameStyle {
         DOT, UNDERSCORE
     }
 
-    /**
-     * all args constructor in order to allow listeners to read their properties in a custom way.
-     */
+    //Keep AllArgsConstructor without sutComponents for backward compatibility
     public OrangebeardProperties(String endpoint, UUID accessToken, String projectName, String testSetName, String description, Set<Attribute> attributes, LogLevel logLevel, boolean logsAtEndOfTest, UUID testRunUUID) {
         this(endpoint, accessToken, projectName, testSetName, description, attributes, logLevel, logsAtEndOfTest);
         this.testRunUUID = testRunUUID;
@@ -202,6 +204,7 @@ public class OrangebeardProperties {
         this.logLevel = lookupLogLevel(lookupFunc);
         this.logsAtEndOfTest = lookUpBooleanWithDefault(LOGS_AT_END_OF_TEST, lookupFunc, this.logsAtEndOfTest);
         this.attributes.addAll(extractAttributes(lookupFunc.apply(OrangebeardProperty.ATTRIBUTES.getPropertyName())));
+        this.sutComponents.addAll(extractComponents(lookupFunc.apply(OrangebeardProperty.SUT_COMPONENTS.getPropertyName())));
         this.testRunUUID = lookupUUIDWithDefault(TEST_RUN_UUID, lookupFunc, this.testRunUUID);
         if (lookupWithDefault(REFERENCE_URL, lookupFunc, null) != null) {
             this.attributes.add(new Attribute("reference_url", lookupWithDefault(REFERENCE_URL, lookupFunc, null)));
@@ -273,6 +276,31 @@ public class OrangebeardProperties {
         }
 
         return attrs;
+    }
+
+    private Set<ChangedComponent> extractComponents(String componentsString) {
+        Set<ChangedComponent> components = new HashSet<>();
+
+        if (componentsString == null || componentsString.isEmpty()) {
+            return components;
+        }
+
+        if (componentsString.startsWith("[")) {
+            JSONArray jsonComponents = new JSONArray(componentsString);
+            for (Object c : jsonComponents) {
+                JSONObject component = (JSONObject) c;
+                components.add(new ChangedComponent(component.getString("name"), component.getString("version")));
+            }
+        } else {
+            for (String component : componentsString.split(";")) {
+                if (component.contains(":")) {
+                    String[] keyValuePair = component.trim().split(":", 2);
+                    components.add(new ChangedComponent(keyValuePair[0].trim(), keyValuePair[1].trim()));
+                }
+            }
+        }
+
+        return components;
     }
 
     public boolean logShouldBeDispatchedToOrangebeard(LogLevel individualLogLevel) {
