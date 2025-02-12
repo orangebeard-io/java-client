@@ -244,7 +244,7 @@ public class OrangebeardProperties {
         try {
             return logLevelProperty == null ? logLevel : LogLevel.valueOf(logLevelProperty);
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(String.format("%s is not a valid log level! Choose DEBUG, INFO, WARN or ERROR. INFO is now used by default.", LOG_LEVEL.getPropertyName()));
+            LOGGER.warn("{} is not a valid log level! Choose DEBUG, INFO, WARN or ERROR. INFO is now used by default.", LOG_LEVEL.getPropertyName());
             return logLevel;
         }
     }
