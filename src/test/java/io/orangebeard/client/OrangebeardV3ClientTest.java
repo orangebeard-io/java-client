@@ -9,14 +9,13 @@ import io.orangebeard.client.entity.StartTestRun;
 import io.orangebeard.client.entity.StartV3TestRun;
 
 import io.orangebeard.client.entity.alerting.AlertRunStatus;
-import io.orangebeard.client.entity.alerting.FinishSecurityAlertRun;
+import io.orangebeard.client.entity.alerting.FinishAlertRun;
 import io.orangebeard.client.entity.alerting.ReportAlert;
 import io.orangebeard.client.entity.alerting.ReportCodeQualityAlert;
 import io.orangebeard.client.entity.alerting.ReportSecurityAlert;
 import io.orangebeard.client.entity.alerting.Severity;
 import io.orangebeard.client.entity.alerting.StartAlertRun;
-import io.orangebeard.client.entity.alerting.StartSecurityAlertRun;
-import io.orangebeard.client.entity.alerting.security.Tool;
+import io.orangebeard.client.entity.alerting.Tool;
 import io.orangebeard.client.entity.alerting.security.Confidence;
 import io.orangebeard.client.entity.alerting.security.Evidence;
 import io.orangebeard.client.entity.attachment.Attachment;
@@ -322,12 +321,12 @@ class OrangebeardV3ClientTest {
     @Test
     void when_the_connection_is_valid_alert_run_can_be_started() {
         UUID uuid = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
-        StartAlertRun alertRun = new StartSecurityAlertRun(
+        StartAlertRun alertRun = new StartAlertRun(
                 "Alert Set",
                 "test",
-                Tool.BURPSUITE,
                 ZonedDateTime.now(),
-                Collections.emptySet()
+                Collections.emptySet(),
+                Tool.BURPSUITE
         );
 
         HttpEntity<StartAlertRun> httpEntity = new HttpEntity<>(alertRun, headers);
@@ -344,8 +343,8 @@ class OrangebeardV3ClientTest {
     @Test
     void when_the_connection_is_valid_alert_run_can_be_finished() {
         UUID alertRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
-        FinishSecurityAlertRun finishAlertRun = new FinishSecurityAlertRun(alertRunUUID, AlertRunStatus.COMPLETED, ZonedDateTime.now());
-        HttpEntity<FinishSecurityAlertRun> httpEntity = new HttpEntity<>(finishAlertRun, headers);
+        FinishAlertRun finishAlertRun = new FinishAlertRun(alertRunUUID, AlertRunStatus.COMPLETED, ZonedDateTime.now());
+        HttpEntity<FinishAlertRun> httpEntity = new HttpEntity<>(finishAlertRun, headers);
 
         when(restTemplate.exchange(anyString(), eq(PUT), eq(httpEntity), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatus.OK));
 

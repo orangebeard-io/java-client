@@ -12,6 +12,7 @@ public enum OrangebeardProperty {
     DESCRIPTION("orangebeard.description"),
     LOG_LEVEL("orangebeard.logLevel"),
     ATTRIBUTES("orangebeard.attributes"),
+    SUT_COMPONENTS("orangebeard.sutComponents"),
     LOGS_AT_END_OF_TEST("orangebeard.logsAtEndOfTest"),
     TEST_RUN_UUID("orangebeard.testRunUUID"),
     REFERENCE_URL("orangebeard.referenceUrl");
