@@ -7,6 +7,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import io.orangebeard.client.entity.Attribute;
 
+import io.orangebeard.client.entity.alerting.codequality.ReportCodeQualityAlert;
+import io.orangebeard.client.entity.alerting.security.ReportSecurityAlert;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

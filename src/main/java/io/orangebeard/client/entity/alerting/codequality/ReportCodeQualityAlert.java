@@ -1,4 +1,4 @@
-package io.orangebeard.client.entity.alerting;
+package io.orangebeard.client.entity.alerting.codequality;
 
 
 import java.util.Set;
@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import io.orangebeard.client.entity.Attribute;
 
+import io.orangebeard.client.entity.alerting.ReportAlert;
+import io.orangebeard.client.entity.alerting.Severity;
 import lombok.Getter;
 
 @Getter

@@ -1,8 +1,8 @@
-package io.orangebeard.client.entity.alerting;
+package io.orangebeard.client.entity.alerting.security;
 
 import io.orangebeard.client.entity.Attribute;
-import io.orangebeard.client.entity.alerting.security.Confidence;
-import io.orangebeard.client.entity.alerting.security.Evidence;
+import io.orangebeard.client.entity.alerting.ReportAlert;
+import io.orangebeard.client.entity.alerting.Severity;
 
 import java.util.Set;
 import java.util.UUID;
@@ -17,8 +17,17 @@ public class ReportSecurityAlert extends ReportAlert {
     private final Evidence evidence;
     private final Severity severity;
 
-    public ReportSecurityAlert(UUID alertRunUUID, String definitionID, String description, String message, String remediation, Set<Attribute> attributes,
-                               Confidence confidence, Evidence evidence, Severity severity) {
+    public ReportSecurityAlert(
+            UUID alertRunUUID,
+            String definitionID,
+            String description,
+            String message,
+            String remediation,
+            Set<Attribute> attributes,
+            Confidence confidence,
+            Evidence evidence,
+            Severity severity
+    ) {
         super(alertRunUUID, definitionID, description, message, remediation, attributes);
         this.definitionID = definitionID;
         this.confidence = confidence;
