@@ -63,6 +63,10 @@ public class OrangebeardAsyncV3Client implements V3Client {
         return temporaryUUID;
     }
 
+    public UUID startTestRunAndAwaitRealUUID(StartV3TestRun testRun) {
+        return client.startTestRun(testRun);
+    }
+
     @Override
     public void startAnnouncedTestRun(UUID testRunUUID) {
         CompletableFuture<Object> startTestRunTask = new CompletableFuture<>();
@@ -81,6 +85,10 @@ public class OrangebeardAsyncV3Client implements V3Client {
         CompletableFuture<Void> allTasks = CompletableFuture.allOf(tasks.values().toArray(new CompletableFuture[0]));
         allTasks.join(); //await completion of all tasks
         client.finishTestRun(uuidMap.get(testRunUUID), finishTestRun);
+    }
+
+    public void finishTestRunWithRealUUID(UUID testRunUUID, FinishV3TestRun finishTestRun) {
+        client.finishTestRun(testRunUUID, finishTestRun);
     }
 
     @Override
@@ -310,6 +318,13 @@ public class OrangebeardAsyncV3Client implements V3Client {
         return temporaryUUID;
     }
 
+    //For CLI lifecycle use
+    public UUID startAlertRunAndAwaitRealUUID(StartAlertRun alertRun) {
+        UUID alertRunTempUUID = startAlertRun(alertRun);
+        CompletableFuture<Object> startTask = parentTask(alertRunTempUUID);
+        return (UUID) startTask.join();
+    }
+
     @Override
     public void finishAlertRun(FinishAlertRun alertRun) {
         CompletableFuture<Void> allTasks = CompletableFuture.allOf(tasks.values().toArray(new CompletableFuture[0]));
@@ -317,6 +332,11 @@ public class OrangebeardAsyncV3Client implements V3Client {
 
         UUID realAlertRunUUID = uuidMap.get(alertRun.getAlertRunUUID());
         alertRun.setAlertRunUUID(realAlertRunUUID);
+        client.finishAlertRun(alertRun);
+    }
+
+    //For CLI lifecycle use
+    public void finishAlertRunWithRealUUID(FinishAlertRun alertRun) {
         client.finishAlertRun(alertRun);
     }
 

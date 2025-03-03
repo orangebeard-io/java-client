@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.function.UnaryOperator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -37,6 +38,7 @@ import static io.orangebeard.client.OrangebeardProperty.TOKEN;
 
 @ToString
 @Getter
+@Setter
 @AllArgsConstructor
 public class OrangebeardProperties {
     private static final String ORANGEBEARD_PROPERTY_FILE = "orangebeard.properties";
@@ -249,7 +251,7 @@ public class OrangebeardProperties {
         }
     }
 
-    private Set<Attribute> extractAttributes(String attributeString) {
+    public static Set<Attribute> extractAttributes(String attributeString) {
         Set<Attribute> attrs = new HashSet<>();
 
         if (attributeString == null || attributeString.isEmpty()) {
