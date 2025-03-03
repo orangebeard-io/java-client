@@ -38,6 +38,9 @@ public class OrangebeardAsyncV3Client implements V3Client {
         client = new OrangebeardV3Client(configuration.getEndpoint(), configuration.getAccessToken(), configuration.getProjectName(), configuration.requiredValuesArePresent());
         tasks = new ConcurrentHashMap<>();
         uuidMap = new ConcurrentHashMap<>();
+        if (configuration.getTestRunUUID() != null) {
+            uuidMap.put(configuration.getTestRunUUID(), configuration.getTestRunUUID());
+        }
     }
 
     public OrangebeardAsyncV3Client() {
