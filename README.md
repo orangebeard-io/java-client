@@ -80,3 +80,14 @@ Finish a test run:
 #!/bin/bash
 java -cp java-client-x.y.z-jar-with-dependencies.jar io.orangebeard.client.Cli -x finish -id $testRunUuid
 ```
+
+Start an alert run: (assume configuration from orangebeard.json or orangebeard.properties)
+```shell
+#!/bin/bash
+alertRunUuid=$(java -cp java-client-x.y.z-jar-with-dependencies.jar io.orangebeard.client.Cli -x start -k security)  
+```
+Finish an alert run:
+```shell
+#!/bin/bash
+java -cp java-client-x.y.z-jar-with-dependencies.jar io.orangebeard.client.Cli -x finish -id $alertRunUuid -k security -as COMPLETED
+```
