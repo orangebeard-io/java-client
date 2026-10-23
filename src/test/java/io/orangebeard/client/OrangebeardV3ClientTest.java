@@ -1,24 +1,12 @@
 package io.orangebeard.client;
 
+import io.orangebeard.client.entity.Attribute;
 import io.orangebeard.client.entity.FinishV3TestRun;
 import io.orangebeard.client.entity.LogFormat;
-import io.orangebeard.client.entity.Response;
-
-import io.orangebeard.client.entity.StartTestRun;
-
 import io.orangebeard.client.entity.StartV3TestRun;
-
 import io.orangebeard.client.entity.alerting.AlertRunStatus;
-import io.orangebeard.client.entity.alerting.FinishAlertRun;
-import io.orangebeard.client.entity.alerting.ReportAlert;
-import io.orangebeard.client.entity.alerting.codequality.ReportCodeQualityAlert;
-import io.orangebeard.client.entity.alerting.security.FinishSecurityAlertRun;
-import io.orangebeard.client.entity.alerting.security.ReportSecurityAlert;
-import io.orangebeard.client.entity.alerting.Severity;
-import io.orangebeard.client.entity.alerting.StartAlertRun;
 import io.orangebeard.client.entity.alerting.Tool;
-import io.orangebeard.client.entity.alerting.security.Confidence;
-import io.orangebeard.client.entity.alerting.security.Evidence;
+import io.orangebeard.client.entity.alerting.security.FinishSecurityAlertRun;
 import io.orangebeard.client.entity.alerting.security.StartSecurityAlertRun;
 import io.orangebeard.client.entity.attachment.Attachment;
 import io.orangebeard.client.entity.log.Log;
@@ -28,385 +16,223 @@ import io.orangebeard.client.entity.step.StartStep;
 import io.orangebeard.client.entity.suite.StartSuite;
 import io.orangebeard.client.entity.suite.Suite;
 import io.orangebeard.client.entity.test.FinishTest;
-
 import io.orangebeard.client.entity.test.StartTest;
 import io.orangebeard.client.entity.test.TestStatus;
-
 import io.orangebeard.client.entity.test.TestType;
-
-import org.junit.jupiter.api.BeforeAll;
+import io.orangebeard.client.exceptions.OrangebeardClientException;
+import io.orangebeard.client.support.FakeOrangebeard;
+import io.orangebeard.client.support.FakeOrangebeard.Reply;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.web.client.RestTemplate;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.String.format;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.springframework.http.HttpMethod.POST;
-import static org.springframework.http.HttpMethod.PUT;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.MULTIPART_FORM_DATA;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@ExtendWith(MockitoExtension.class)
 class OrangebeardV3ClientTest {
-    private static RestTemplate restTemplate;
-    private static String endpoint;
-    private static String projectName;
-    private static HttpHeaders headers;
-    @InjectMocks
-    private static OrangebeardV3Client orangebeardV3Client;
+    private static final UUID TOKEN = UUID.fromString("722f2956-4ef9-455f-a8aa-2be5408ec6d0");
+    private static final UUID RUN = UUID.randomUUID();
+    private static final UUID TEST = UUID.randomUUID();
+    private static final UUID STEP = UUID.randomUUID();
+    private static final ZonedDateTime NOW = ZonedDateTime.now();
 
-    @BeforeAll
-    static void setup() {
-        endpoint = "http://localhost:8080";
-        projectName = "orangebeard";
-        UUID accessToken = UUID.fromString("49d20b01-1085-449a-94e3-1d7718242c55");
+    private FakeOrangebeard server;
+    private OrangebeardV3Client client;
 
-        headers = new HttpHeaders();
-        headers.setBearerAuth(String.valueOf(accessToken));
-        headers.setContentType(APPLICATION_JSON);
-        restTemplate = mock(RestTemplate.class);
-
-        orangebeardV3Client =
-                new OrangebeardV3Client(restTemplate, endpoint, accessToken,
-                        projectName, true);
+    @BeforeEach
+    void setUp() {
+        server = new FakeOrangebeard();
+        client = clientWith(true, 3, Duration.ofMillis(10), Duration.ofSeconds(5));
     }
 
-    /*     TEST RUN     */
+    @AfterEach
+    void tearDown() {
+        server.close();
+    }
 
-    @Test
-    void when_the_connection_is_valid_test_run_can_be_announced() {
-        UUID testRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        HttpEntity<StartTestRun> httpEntity = new HttpEntity<>(headers);
-
-        when(restTemplate.exchange(anyString(), eq(PUT), eq(httpEntity), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatus.OK));
-
-        orangebeardV3Client.startAnnouncedTestRun(testRunUUID);
-
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/test-run/start/%s", endpoint, projectName, testRunUUID), PUT, httpEntity, Response.class);
+    private OrangebeardV3Client clientWith(boolean valid, int attempts, Duration retryDelay, Duration timeout) {
+        return new OrangebeardV3Client(server.url(), TOKEN, FakeOrangebeard.PROJECT, valid, attempts, retryDelay, timeout);
     }
 
     @Test
-    void when_the_connection_is_valid_test_run_can_be_started() {
-        UUID uuid = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        StartV3TestRun startTestRun = StartV3TestRun.builder()
-                .testSetName("test set#1")
-                .description("test")
-                .startTime(ZonedDateTime.now())
-                .build();
-        HttpEntity<StartV3TestRun> httpEntity = new HttpEntity<>(startTestRun, headers);
-        ResponseEntity<UUID> response = new ResponseEntity<>(uuid, HttpStatus.OK);
+    void startTestRun_posts_the_run_with_bearer_token_and_returns_the_uuid() {
+        UUID expected = UUID.randomUUID();
+        server.respondWith(request -> Reply.ok("\"" + expected + "\""));
 
-        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
+        UUID actual = client.startTestRun(new StartV3TestRun("set", "desc", Set.of(new Attribute("k", "v"))));
 
-        UUID testRunUUID = orangebeardV3Client.startTestRun(startTestRun);
-
-        assert testRunUUID.equals(uuid);
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/test-run/start", endpoint, projectName), POST, httpEntity, UUID.class);
+        assertThat(actual).isEqualTo(expected);
+        FakeOrangebeard.Request request = server.requestsTo("/test-run/start").get(0);
+        assertThat(request.method()).isEqualTo("POST");
+        assertThat(request.authorization()).isEqualTo("Bearer " + TOKEN);
+        assertThat(request.contentType()).isEqualTo("application/json");
+        assertThat(request.json().get("testSetName").asString()).isEqualTo("set");
+        assertThat(request.json().get("startTime").isNumber()).isTrue();
     }
 
     @Test
-    void when_the_connection_is_valid_test_run_can_be_finished() {
-        UUID testRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        FinishV3TestRun finishTestRun = new FinishV3TestRun();
-        HttpEntity<FinishV3TestRun> httpEntity = new HttpEntity<>(finishTestRun, headers);
+    void startAnnouncedTestRun_puts_without_body() {
+        UUID announced = UUID.randomUUID();
 
-        when(restTemplate.exchange(anyString(), eq(PUT), eq(httpEntity), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatus.OK));
+        client.startAnnouncedTestRun(announced);
 
-        orangebeardV3Client.finishTestRun(testRunUUID, finishTestRun);
-
-        verify(restTemplate, times(1)).exchange(format("http://localhost:8080/listener/v3/%s/test-run/finish/%s", projectName, testRunUUID), PUT, httpEntity, Void.class);
-    }
-
-    /*     SUITE     */
-
-    @Test
-    void when_the_connection_is_valid_suite_can_be_started() {
-        UUID uuid = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        UUID parentUUID = UUID.randomUUID();
-        List<String> suiteNames = new ArrayList<>(2);
-        suiteNames.add("suite1");
-        suiteNames.add("suite2");
-        StartSuite suite = StartSuite.builder()
-                .testRunUUID(uuid)
-                .parentSuiteUUID(parentUUID)
-                .description("test")
-                .suiteNames(suiteNames)
-                .build();
-        HttpEntity<StartSuite> httpEntity = new HttpEntity<>(suite, headers);
-
-        Suite suite1 = new Suite(UUID.randomUUID(), parentUUID, "IntegrationTests", Collections.singletonList("ApiTests.IntegrationTests"));
-        Suite suite2 = new Suite(UUID.randomUUID(), parentUUID, "UnitTests", Collections.singletonList("ApiTests.UnitTests"));
-        Suite[] suiteList = new Suite[]{suite1, suite2};
-        ResponseEntity<Suite[]> response = new ResponseEntity<>(suiteList, HttpStatus.OK);
-
-        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(Suite[].class))).thenReturn(response);
-
-        List<Suite> suites = orangebeardV3Client.startSuite(suite);
-
-        assert suites.get(0).equals(suite1);
-        assert suites.get(1).equals(suite2);
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/suite/start", endpoint, projectName), POST, httpEntity, Suite[].class);
-    }
-
-    /*      TEST      */
-
-    @Test
-    void when_the_connection_is_valid_test_can_be_started() {
-        UUID testRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        StartTest startTest = StartTest.builder()
-                .testRunUUID(testRunUUID)
-                .suiteUUID(UUID.randomUUID())
-                .testName("unit-tests")
-                .testType(TestType.TEST)
-                .startTime(ZonedDateTime.now())
-                .build();
-        HttpEntity<StartTest> httpEntity = new HttpEntity<>(startTest, headers);
-        ResponseEntity<UUID> response = new ResponseEntity<>(UUID.randomUUID(), HttpStatus.OK);
-
-        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
-
-        UUID uuid = orangebeardV3Client.startTest(startTest);
-
-        assert uuid.equals(response.getBody());
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/test/start", endpoint, projectName), POST, httpEntity, UUID.class);
+        FakeOrangebeard.Request request = server.requestsTo("/test-run/start/" + announced).get(0);
+        assertThat(request.method()).isEqualTo("PUT");
+        assertThat(request.body()).isEmpty();
     }
 
     @Test
-    void when_the_connection_is_valid_test_can_be_finished_properly() {
-        UUID testRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        FinishTest finishTest = FinishTest.builder()
-                .testRunUUID(testRunUUID)
-                .status(TestStatus.PASSED)
-                .endTime(ZonedDateTime.now())
-                .build();
-        HttpEntity<FinishTest> httpEntity = new HttpEntity<>(finishTest, headers);
+    void finishTestRun_puts_the_end_time() {
+        client.finishTestRun(RUN, new FinishV3TestRun(NOW));
 
-        when(restTemplate.exchange(anyString(), eq(PUT), eq(httpEntity), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatus.OK));
-
-        orangebeardV3Client.finishTest(testRunUUID, finishTest);
-
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/test/finish/%s", endpoint, projectName, testRunUUID), PUT, httpEntity, Void.class);
-    }
-
-    /*      STEP      */
-
-    @Test
-    void when_the_connection_is_valid_step_be_started() {
-        UUID testRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        UUID testUUID = UUID.fromString("9fc9eb6e-264e-4d0e-806e-85a65fe99da9");
-        StartStep startStep = StartStep.builder()
-                .testRunUUID(testRunUUID)
-                .testUUID(testUUID)
-                .parentStepUUID(UUID.randomUUID())
-                .stepName("Test-Step")
-                .description("test")
-                .startTime(ZonedDateTime.now())
-                .build();
-        HttpEntity<StartStep> httpEntity = new HttpEntity<>(startStep, headers);
-        ResponseEntity<UUID> response = new ResponseEntity<>(UUID.randomUUID(), HttpStatus.OK);
-
-        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
-
-        UUID uuid = orangebeardV3Client.startStep(startStep);
-
-        assert uuid.equals(response.getBody());
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/step/start", endpoint, projectName), POST, httpEntity, UUID.class);
+        FakeOrangebeard.Request request = server.requestsTo("/test-run/finish/" + RUN).get(0);
+        assertThat(request.method()).isEqualTo("PUT");
+        assertThat(request.json().has("endTime")).isTrue();
     }
 
     @Test
-    void when_the_connection_is_valid_step_can_be_finished_properly() {
-        UUID testRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        FinishStep finishStep = FinishStep.builder()
-                .testRunUUID(testRunUUID)
-                .status(TestStatus.PASSED)
-                .endTime(ZonedDateTime.now())
-                .build();
-        HttpEntity<FinishStep> httpEntity = new HttpEntity<>(finishStep, headers);
+    void startSuite_returns_the_suites_created_by_the_server() {
+        List<Suite> suites = client.startSuite(new StartSuite(RUN, null, null, Set.of(), List.of("a", "b")));
 
-        when(restTemplate.exchange(anyString(), eq(PUT), eq(httpEntity), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatus.OK));
-
-        orangebeardV3Client.finishStep(testRunUUID, finishStep);
-
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/step/finish/%s", endpoint, projectName, testRunUUID), PUT, httpEntity, Void.class);
-    }
-
-    /*      LOG      */
-
-    @Test
-    void when_the_connection_is_valid_log_can_be_sent() {
-        UUID testRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        UUID testUUID = UUID.fromString("9fc9eb6e-264e-4d0e-806e-85a65fe99da9");
-        Log log = Log.builder()
-                .testRunUUID(testRunUUID)
-                .testUUID(testUUID)
-                .stepUUID(UUID.randomUUID())
-                .message("Log message")
-                .logLevel(LogLevel.WARN)
-                .logFormat(LogFormat.PLAIN_TEXT)
-                .build();
-        HttpEntity<Log> httpEntity = new HttpEntity<>(log, headers);
-        ResponseEntity<UUID> response = new ResponseEntity<>(UUID.randomUUID(), HttpStatus.OK);
-
-        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
-
-        UUID uuid = orangebeardV3Client.log(log);
-
-        assert uuid.equals(response.getBody());
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/log", endpoint, projectName), POST, httpEntity, UUID.class);
-    }
-
-    /*      ATTACHMENT      */
-
-    @Test
-    void when_the_connection_is_valid_attachment_can_be_sent() {
-        UUID stepUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb534");
-        UUID testUUID = UUID.fromString("9fc9eb6e-264e-4d0e-806e-85a65fe99da9");
-        byte[] content = new byte[]{(byte) 0x91, 0x19, 0x38, 0x14, 0x47, 0x21, 0x11};
-
-        Attachment.AttachmentFile file = Attachment.AttachmentFile.builder()
-                .name("img_file")
-                .content(content)
-                .contentType("image/jpg")
-                .build();
-        Attachment.AttachmentMetaData metaData = Attachment.AttachmentMetaData.builder()
-                .logUUID(UUID.randomUUID())
-                .testUUID(testUUID)
-                .stepUUID(stepUUID)
-                .attachmentTime(ZonedDateTime.now())
-                .build();
-        Attachment attachment = new Attachment(file, metaData);
-
-        LinkedMultiValueMap<String, String> filePartHeaders = new LinkedMultiValueMap<>();
-        filePartHeaders.add(CONTENT_DISPOSITION, format("form-data; name=\"attachment\"; filename=\"%s\"", file.getName()));
-        filePartHeaders.add(CONTENT_TYPE, file.getContentType());
-
-        HttpEntity<byte[]> filePart = new HttpEntity<>(content, filePartHeaders);
-
-        LinkedMultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
-        parts.add("json", metaData);
-        parts.add("attachment", filePart);
-
-        Objects.requireNonNull(headers.get(CONTENT_TYPE)).set(0, String.valueOf(MULTIPART_FORM_DATA));
-        HttpEntity<LinkedMultiValueMap<String, Object>> request = new HttpEntity<>(parts, headers);
-
-        ResponseEntity<UUID> response = new ResponseEntity<>(UUID.randomUUID(), HttpStatus.OK);
-
-        when(restTemplate.exchange(anyString(), eq(POST), eq(request), eq(UUID.class))).thenReturn(response);
-
-        UUID uuid = orangebeardV3Client.sendAttachment(attachment);
-
-        assert uuid.equals(response.getBody());
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/attachment", endpoint, projectName), POST, request, UUID.class);
+        assertThat(suites).extracting(Suite::getLocalSuiteName).containsExactly("a", "b");
+        assertThat(suites.get(1).getParentUUID()).isEqualTo(suites.get(0).getSuiteUUID());
     }
 
     @Test
-    void when_the_connection_is_valid_alert_run_can_be_started() {
-        UUID uuid = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
-        StartSecurityAlertRun alertRun = new StartSecurityAlertRun(
-                "Alert Set",
-                "test",
-                Tool.BURPSUITE,
-                ZonedDateTime.now(),
-                Collections.emptySet()
-        );
+    void test_step_and_log_lifecycle_uses_the_expected_endpoints() {
+        UUID test = client.startTest(new StartTest(RUN, UUID.randomUUID(), "t", TestType.TEST, null, Set.of(), NOW));
+        client.finishTest(test, new FinishTest(RUN, TestStatus.PASSED, NOW));
+        UUID step = client.startStep(new StartStep(RUN, TEST, null, "s", null, NOW));
+        client.finishStep(step, new FinishStep(RUN, TestStatus.PASSED, NOW));
+        UUID log = client.log(new Log(RUN, TEST, STEP, "m", LogLevel.INFO, NOW, LogFormat.PLAIN_TEXT));
+        client.sendLogBatch(List.of(new Log(RUN, TEST, null, "m", LogLevel.INFO, NOW, LogFormat.PLAIN_TEXT)));
 
-        HttpEntity<StartAlertRun> httpEntity = new HttpEntity<>(alertRun, headers);
-        ResponseEntity<UUID> response = new ResponseEntity<>(uuid, HttpStatus.OK);
-
-        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
-
-        UUID alertRunUUID = orangebeardV3Client.startAlertRun(alertRun);
-
-        assert alertRunUUID.equals(uuid);
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/alert-run/start", endpoint, projectName), POST, httpEntity, UUID.class);
+        assertThat(test).isNotNull();
+        assertThat(step).isNotNull();
+        assertThat(log).isNotNull();
+        assertThat(server.requests()).extracting(r -> r.method() + " " + r.apiPath()).containsExactly(
+                "POST /test/start",
+                "PUT /test/finish/" + test,
+                "POST /step/start",
+                "PUT /step/finish/" + step,
+                "POST /log",
+                "POST /log/batch");
+        assertThat(server.requestsTo("/log/batch").get(0).json().isArray()).isTrue();
     }
 
     @Test
-    void when_the_connection_is_valid_alert_run_can_be_finished() {
-        UUID alertRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
-        FinishSecurityAlertRun finishAlertRun = new FinishSecurityAlertRun(alertRunUUID, AlertRunStatus.COMPLETED, ZonedDateTime.now());
-        HttpEntity<FinishAlertRun> httpEntity = new HttpEntity<>(finishAlertRun, headers);
+    void alert_run_lifecycle_uses_the_expected_endpoints() {
+        UUID alertRun = client.startAlertRun(new StartSecurityAlertRun("alerts", "desc", Tool.ZAP, NOW, Set.of()));
+        client.finishAlertRun(new FinishSecurityAlertRun(alertRun, AlertRunStatus.COMPLETED, NOW));
 
-        when(restTemplate.exchange(anyString(), eq(PUT), eq(httpEntity), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatus.OK));
-
-        orangebeardV3Client.finishAlertRun(finishAlertRun);
-
-        verify(restTemplate, times(1)).exchange(format("http://localhost:8080/listener/v3/%s/alert-run/finish", projectName), PUT, httpEntity, Void.class);
+        assertThat(alertRun).isNotNull();
+        assertThat(server.requestsTo("/alert-run/start").get(0).json().get("type").asString()).isEqualTo("StartSecurityAlertRun");
+        assertThat(server.requestsTo("/alert-run/finish").get(0).method()).isEqualTo("PUT");
     }
 
     @Test
-    void when_the_connection_is_valid_a_security_alert_can_be_reported() {
-        UUID alertRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
-        ReportAlert alert = new ReportSecurityAlert(
-                alertRunUUID,
-                "0",
-                "This is bad",
-                "An alert",
-                "Go fix",
-                Collections.emptySet(),
-                Confidence.FIRM,
-                new Evidence("https://vulnerable.url", "POST", 200, new HashMap<>(), "request", new HashMap<>(), "response", "other"),
-                Severity.MEDIUM
-        );
+    void sendAttachment_posts_multipart_with_json_metadata_and_file() {
+        byte[] content = "file-content".getBytes(StandardCharsets.UTF_8);
+        Attachment attachment = new Attachment(
+                new Attachment.AttachmentFile("report.txt", content, "text/plain"),
+                new Attachment.AttachmentMetaData(RUN, TEST, STEP, UUID.randomUUID(), NOW));
 
-        HttpEntity<ReportAlert> httpEntity = new HttpEntity<>(alert, headers);
-        ResponseEntity<UUID> response = new ResponseEntity<>(UUID.randomUUID(), HttpStatus.OK);
+        UUID id = client.sendAttachment(attachment);
 
-        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
-
-        UUID uuid = orangebeardV3Client.reportAlert(alert);
-
-        assert uuid.equals(response.getBody());
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/alert-run/report", endpoint, projectName), POST, httpEntity, UUID.class);
+        assertThat(id).isNotNull();
+        FakeOrangebeard.Request request = server.requestsTo("/attachment").get(0);
+        assertThat(request.contentType()).startsWith("multipart/form-data; boundary=");
+        String body = request.bodyText();
+        assertThat(body).contains("name=\"json\"", "Content-Type: application/json", "\"testRunUUID\":\"" + RUN + "\"");
+        assertThat(body).contains("name=\"attachment\"; filename=\"report.txt\"", "Content-Type: text/plain", "file-content");
     }
 
     @Test
-    void when_the_connection_is_valid_a_code_quality_alert_can_be_reported() {
-        UUID alertRunUUID = UUID.fromString("92580f91-073a-4bf7-aa10-bb4f8dbcb535");
-        ReportAlert alert = new ReportCodeQualityAlert(
-                alertRunUUID,
-                "0",
-                "This is bad",
-                "An alert",
-                "Go fix",
-                Collections.emptySet(),
-                "smellId",
-                Severity.HIGH,
-                "className",
-                "methodName",
-                "fileName",
-                1
-        );
+    void server_errors_are_retried_until_they_succeed() {
+        AtomicInteger calls = new AtomicInteger();
+        server.respondWith(request -> calls.incrementAndGet() < 3 ? Reply.status(503) : null);
 
-        HttpEntity<ReportAlert> httpEntity = new HttpEntity<>(alert, headers);
-        ResponseEntity<UUID> response = new ResponseEntity<>(UUID.randomUUID(), HttpStatus.OK);
+        UUID result = client.startTest(new StartTest(RUN, UUID.randomUUID(), "t", TestType.TEST, null, Set.of(), NOW));
 
-        when(restTemplate.exchange(anyString(), eq(POST), eq(httpEntity), eq(UUID.class))).thenReturn(response);
+        assertThat(result).isNotNull();
+        assertThat(server.requests()).hasSize(3);
+    }
 
-        UUID uuid = orangebeardV3Client.reportAlert(alert);
+    @Test
+    void rate_limiting_is_retried() {
+        AtomicInteger calls = new AtomicInteger();
+        server.respondWith(request -> calls.incrementAndGet() < 2 ? Reply.status(429) : null);
 
-        assert uuid.equals(response.getBody());
-        verify(restTemplate, times(1)).exchange(format("%s/listener/v3/%s/alert-run/report", endpoint, projectName), POST, httpEntity, UUID.class);
+        assertThat(client.log(new Log(RUN, TEST, null, "m", LogLevel.INFO, NOW, LogFormat.PLAIN_TEXT))).isNotNull();
+    }
+
+    @Test
+    void client_errors_are_not_retried() {
+        server.respondWith(request -> Reply.status(400));
+
+        assertThatThrownBy(() -> client.startTest(new StartTest(RUN, UUID.randomUUID(), "t", TestType.TEST, null, Set.of(), NOW)))
+                .isInstanceOf(OrangebeardClientException.class)
+                .hasMessageContaining("HTTP 400");
+        assertThat(server.requests()).hasSize(1);
+    }
+
+    @Test
+    void gives_up_after_the_configured_number_of_attempts() {
+        server.respondWith(request -> Reply.status(500));
+
+        assertThatThrownBy(() -> client.log(new Log(RUN, TEST, null, "m", LogLevel.INFO, NOW, LogFormat.PLAIN_TEXT)))
+                .isInstanceOf(OrangebeardClientException.class)
+                .hasMessageContaining("HTTP 500");
+        assertThat(server.requests()).hasSize(3);
+    }
+
+    @Test
+    void a_stalled_server_triggers_the_request_timeout() {
+        server.respondWith(request -> new Reply(200, "", 2000));
+        OrangebeardV3Client impatient = clientWith(true, 1, Duration.ofMillis(1), Duration.ofMillis(200));
+
+        assertThatThrownBy(() -> impatient.log(new Log(RUN, TEST, null, "m", LogLevel.INFO, NOW, LogFormat.PLAIN_TEXT)))
+                .isInstanceOf(OrangebeardClientException.class);
+    }
+
+    @Test
+    void failing_to_start_a_run_disables_the_client() {
+        server.respondWith(request -> Reply.status(401));
+
+        assertThat(client.startTestRun(new StartV3TestRun("set", "desc", Set.of()))).isNull();
+        int requestsAfterStart = server.requests().size();
+        assertThat(client.log(new Log(RUN, TEST, null, "m", LogLevel.INFO, NOW, LogFormat.PLAIN_TEXT))).isNull();
+
+        assertThat(server.requests()).hasSize(requestsAfterStart);
+    }
+
+    @Test
+    void a_client_that_is_not_valid_does_not_send_anything() {
+        OrangebeardV3Client invalid = clientWith(false, 3, Duration.ofMillis(10), Duration.ofSeconds(1));
+
+        assertThat(invalid.startTestRun(new StartV3TestRun("set", "desc", Set.of()))).isNull();
+        assertThat(invalid.startSuite(new StartSuite(RUN, null, null, Set.of(), List.of("a")))).isEmpty();
+        assertThat(invalid.log(new Log(RUN, TEST, null, "m", LogLevel.INFO, NOW, LogFormat.PLAIN_TEXT))).isNull();
+        invalid.finishTestRun(RUN, new FinishV3TestRun(NOW));
+        invalid.startAnnouncedTestRun(RUN);
+
+        assertThat(server.requests()).isEmpty();
+    }
+
+    @Test
+    void project_names_with_special_characters_are_encoded_in_the_url() {
+        OrangebeardV3Client spaced = new OrangebeardV3Client(server.url() + "/", TOKEN, "my project", true, 1, Duration.ofMillis(1), Duration.ofSeconds(5));
+
+        spaced.finishTestRun(RUN, new FinishV3TestRun(NOW));
+
+        assertThat(server.requests().get(0).path()).isEqualTo("/listener/v3/my%20project/test-run/finish/" + RUN);
     }
 }

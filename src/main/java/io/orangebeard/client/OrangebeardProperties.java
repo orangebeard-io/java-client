@@ -19,11 +19,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 
 import static io.orangebeard.client.OrangebeardProperty.ACCESS_TOKEN;
 import static io.orangebeard.client.OrangebeardProperty.DESCRIPTION;
@@ -151,7 +150,7 @@ public class OrangebeardProperties {
     }
 
     private void readPropertyJsonFile(String jsonFileName) {
-        JSONObject jsonConfig = getJsonConfig(jsonFileName);
+        JsonNode jsonConfig = getJsonConfig(jsonFileName);
         if (jsonConfig != null) {
             readPropertiesWith(key -> getJsonConfigValue(key, jsonConfig));
         }
@@ -169,15 +168,15 @@ public class OrangebeardProperties {
         }
     }
 
-    private static JSONObject getJsonConfig(String jsonFileName) {
+    private static JsonNode getJsonConfig(String jsonFileName) {
         Path currentDir = Paths.get("").toAbsolutePath();
         while (currentDir != null) {
             Path filePath = currentDir.resolve(jsonFileName);
             if (Files.exists(filePath)) {
                 try {
-                    String content = Files.readString(filePath, StandardCharsets.UTF_8);
-                    return new JSONObject(content);
-                } catch (IOException e) {
+                    return Json.mapper().readTree(Files.readString(filePath, StandardCharsets.UTF_8));
+                } catch (IOException | JacksonException e) {
+                    LOGGER.warn("Could not read {}: {}", filePath, e.getMessage());
                     return null;
                 }
             }
@@ -186,12 +185,12 @@ public class OrangebeardProperties {
         return null;
     }
 
-    private String getJsonConfigValue(String key, JSONObject jsonConfiguration) {
-        try {
-            return jsonConfiguration.get(key.replace("orangebeard.", "")).toString();
-        } catch (JSONException e) {
+    private String getJsonConfigValue(String key, JsonNode jsonConfiguration) {
+        JsonNode value = jsonConfiguration.get(key.replace("orangebeard.", ""));
+        if (value == null || value.isNull()) {
             return null;
         }
+        return value.isString() ? value.stringValue() : value.toString();
     }
 
     private void readPropertiesWith(UnaryOperator<String> lookupFunc) {
@@ -236,7 +235,7 @@ public class OrangebeardProperties {
         try {
             return UUID.fromString(temp);
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(ACCESS_TOKEN.getPropertyName(), "{0} is not a valid UUID!");
+            LOGGER.warn("{} is not a valid UUID!", property.getPropertyName());
             return defaultValue;
         }
     }
@@ -259,12 +258,10 @@ public class OrangebeardProperties {
         }
 
         if (attributeString.startsWith("[")) {
-            JSONArray jsonAttrs = new JSONArray(attributeString);
-            for (Object attribute : jsonAttrs) {
-                JSONObject attr = (JSONObject) attribute;
+            for (JsonNode attr : Json.mapper().readTree(attributeString)) {
                 attrs.add(attr.has("key") ?
-                        new Attribute(attr.getString("key"), attr.getString("value")) :
-                        new Attribute(attr.getString("value")));
+                        new Attribute(attr.get("key").asString(), attr.get("value").asString()) :
+                        new Attribute(attr.get("value").asString()));
             }
         } else {
             for (String attribute : attributeString.split(";")) {
@@ -288,10 +285,8 @@ public class OrangebeardProperties {
         }
 
         if (componentsString.startsWith("[")) {
-            JSONArray jsonComponents = new JSONArray(componentsString);
-            for (Object c : jsonComponents) {
-                JSONObject component = (JSONObject) c;
-                components.add(new ChangedComponent(component.getString("name"), component.getString("version")));
+            for (JsonNode component : Json.mapper().readTree(componentsString)) {
+                components.add(new ChangedComponent(component.get("name").asString(), component.get("version").asString()));
             }
         } else {
             for (String component : componentsString.split(";")) {

@@ -1,8 +1,8 @@
 {
-  "endpoint": "https://host.orangebeard.app",
-  "token": "722f2956-4ef9-455f-a8aa-2be5408ec6d0",
-  "project": "my-project",
-  "testset": "my-test-set",
+  "endpoint": "https://app.orangebeard.io/orangebeard",
+  "token": "1a6fd91d-ba8a-4a8d-af96-52a7a0c925cb",
+  "project": "listeners",
+  "testset": "junit5 listener unittest",
   "description": "A run from Java",
   "attributes": [
     {

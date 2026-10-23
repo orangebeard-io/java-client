@@ -58,7 +58,7 @@ usage: Orangebeard CommandLine Utility
  -a,--attributes <arg>        Test run attributes
  -as,--alertrunstatus <arg>   Test Alert run status. "INTERRUPTED" or
                               "COMPLETED". Defaults to "COMPLETED"
- -at,--alerttool <arg>        The alert tool name (ZAP or BURP)
+ -at,--alerttool <arg>        The alert tool name (ZAP or BURPSUITE)
  -d,--description <arg>       The test run description
  -e,--endpoint <arg>          Your Orangebeard endpoint
  -id,--testRunUuid <arg>      The UUID of the test run to finish
