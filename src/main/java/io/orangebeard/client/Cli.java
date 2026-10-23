@@ -12,56 +12,63 @@ import io.orangebeard.client.v3.OrangebeardAsyncV3Client;
 
 import org.apache.commons.cli.*;
 
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.time.ZonedDateTime;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 public class Cli {
 
     public static final String CLI_NAME = "Orangebeard CommandLine Utility";
 
     public static void main(String[] args) {
-        OrangebeardProperties config = new OrangebeardProperties();
-        OrangebeardAsyncV3Client client = new OrangebeardAsyncV3Client(config);
-        CommandLine cmd = parseCommandLine(args);
-
-        if (cmd == null || !cmd.hasOption("x")) {
-            printUsageAndExit();
-        }
-
-        updateConfigFromCmd(cmd, config);
-
-        String command = cmd.getOptionValue("x");
-        RunType runType = determineRunType(cmd);
-        Tool alertTool = cmd.hasOption("at") ? Tool.valueOf(cmd.getOptionValue("at").toUpperCase()) : null;
-
-        switch (command) {
-            case "start":
-                handleStartCommand(client, config, runType, alertTool);
-                break;
-            case "finish":
-                handleFinishCommand(client, cmd, runType);
-                break;
-            default:
-                printUsageAndExit();
-        }
+        System.exit(run(args, new OrangebeardProperties(), System.out, System.err));
     }
 
-    private static CommandLine parseCommandLine(String[] args) {
-        CommandLineParser parser = new DefaultParser();
-        Options options = commandLineOptions();
+    /**
+     * Runs a CLI command and returns the process exit code. Command line options override the given configuration
+     * before the client is created.
+     */
+    static int run(String[] args, OrangebeardProperties config, PrintStream out, PrintStream err) {
+        CommandLine cmd;
         try {
-            return parser.parse(options, args);
+            cmd = new DefaultParser().parse(commandLineOptions(), args);
         } catch (ParseException e) {
-            System.out.println("Error: " + e.getMessage());
-            printUsageAndExit();
-            return null; // Unreachable, but keeps compiler happy
+            err.println("Error: " + e.getMessage());
+            return usage(out);
+        }
+        if (!cmd.hasOption("x")) {
+            return usage(out);
+        }
+
+        try {
+            updateConfigFromCmd(cmd, config);
+        } catch (IllegalArgumentException e) {
+            err.println("Error: " + e.getMessage());
+            return 1;
+        }
+
+        OrangebeardAsyncV3Client client = new OrangebeardAsyncV3Client(config);
+        RunType runType = determineRunType(cmd);
+
+        switch (cmd.getOptionValue("x")) {
+            case "start":
+                return handleStartCommand(client, config, runType, cmd, out, err);
+            case "finish":
+                return handleFinishCommand(client, cmd, runType, out, err);
+            default:
+                return usage(out);
         }
     }
 
-    private static void printUsageAndExit() {
-        new HelpFormatter().printHelp(CLI_NAME, commandLineOptions());
-        System.exit(1);
+    private static int usage(PrintStream out) {
+        PrintWriter writer = new PrintWriter(out);
+        new HelpFormatter().printHelp(writer, HelpFormatter.DEFAULT_WIDTH, CLI_NAME, null, commandLineOptions(),
+                HelpFormatter.DEFAULT_LEFT_PAD, HelpFormatter.DEFAULT_DESC_PAD, null);
+        writer.flush();
+        return 1;
     }
 
     private static RunType determineRunType(CommandLine cmd) {
@@ -70,54 +77,84 @@ public class Cli {
                 : RunType.TEST;
     }
 
-    private static void handleStartCommand(OrangebeardAsyncV3Client client, OrangebeardProperties config, RunType runType, Tool alertTool) {
+    private static int handleStartCommand(OrangebeardAsyncV3Client client, OrangebeardProperties config, RunType runType,
+                                          CommandLine cmd, PrintStream out, PrintStream err) {
+        UUID runUUID;
         if (runType == RunType.TEST) {
-            UUID testRunUUID = client.startTestRunAndAwaitRealUUID(new StartV3TestRun(
+            runUUID = startRun(() -> client.startTestRunAndAwaitRealUUID(new StartV3TestRun(
                     config.getTestSetName(),
                     config.getDescription(),
                     config.getAttributes()
-            ));
-            System.out.println(testRunUUID);
+            )), err);
         } else {
-            if (alertTool == null) {
-                System.err.println("Error: A tool arg is required when starting an alert run!");
-                System.exit(1);
+            if (!cmd.hasOption("at")) {
+                err.println("Error: A tool arg is required when starting an alert run!");
+                return 1;
             }
-            UUID alertRunUUID = client.startAlertRunAndAwaitRealUUID(new StartSecurityAlertRun(
+            Tool alertTool;
+            try {
+                alertTool = Tool.valueOf(cmd.getOptionValue("at").toUpperCase());
+            } catch (IllegalArgumentException e) {
+                err.println("Error: Unknown alert tool " + cmd.getOptionValue("at") + "! Use ZAP or BURPSUITE.");
+                return 1;
+            }
+            runUUID = startRun(() -> client.startAlertRunAndAwaitRealUUID(new StartSecurityAlertRun(
                     config.getTestSetName(),
                     config.getDescription(),
                     alertTool,
                     ZonedDateTime.now(),
                     config.getAttributes()
-            ));
-            System.out.println(alertRunUUID);
+            )), err);
         }
-        System.exit(0);
+        if (runUUID == null) {
+            return 1;
+        }
+        out.println(runUUID);
+        return 0;
     }
 
-    private static void handleFinishCommand(OrangebeardAsyncV3Client client, CommandLine cmd, RunType runType) {
+    private static UUID startRun(Supplier<UUID> start, PrintStream err) {
+        try {
+            UUID uuid = start.get();
+            if (uuid == null) {
+                err.println("Error: The run could not be started. Check the Orangebeard configuration.");
+            }
+            return uuid;
+        } catch (RuntimeException e) {
+            err.println("Error: The run could not be started: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static int handleFinishCommand(OrangebeardAsyncV3Client client, CommandLine cmd, RunType runType,
+                                           PrintStream out, PrintStream err) {
         if (!cmd.hasOption("id")) {
-            System.out.println("Error: TestRunUuid is required for finish command.");
-            printUsageAndExit();
+            err.println("Error: TestRunUuid is required for finish command.");
+            return usage(out);
         }
 
         UUID testRunUuid = parseUUID(cmd.getOptionValue("id"));
         if (testRunUuid == null) {
-            System.out.println("Error: Provided test run UUID is not valid.");
-            System.exit(1);
+            err.println("Error: Provided test run UUID is not valid.");
+            return 1;
         }
 
-        if (runType == RunType.TEST) {
-            client.finishTestRunWithRealUUID(testRunUuid, new FinishV3TestRun());
-        } else {
-            AlertRunStatus status = cmd.hasOption("as") && "INTERRUPTED".equalsIgnoreCase(cmd.getOptionValue("as"))
-                    ? AlertRunStatus.INTERRUPTED
-                    : AlertRunStatus.COMPLETED;
-            client.finishAlertRunWithRealUUID(new FinishSecurityAlertRun(testRunUuid, status, ZonedDateTime.now()));
+        try {
+            if (runType == RunType.TEST) {
+                client.finishTestRunWithRealUUID(testRunUuid, new FinishV3TestRun());
+            } else {
+                AlertRunStatus status = cmd.hasOption("as") && "INTERRUPTED".equalsIgnoreCase(cmd.getOptionValue("as"))
+                        ? AlertRunStatus.INTERRUPTED
+                        : AlertRunStatus.COMPLETED;
+                client.finishAlertRunWithRealUUID(new FinishSecurityAlertRun(testRunUuid, status, ZonedDateTime.now()));
+            }
+        } catch (RuntimeException e) {
+            err.println("Error: The run could not be finished: " + e.getMessage());
+            return 1;
         }
 
-        System.out.println("Orangebeard report Finished!");
-        System.exit(0);
+        out.println("Orangebeard report Finished!");
+        return 0;
     }
 
     private static UUID parseUUID(String uuidString) {
@@ -133,7 +170,7 @@ public class Cli {
             config.setEndpoint(cmd.getOptionValue("e"));
         }
         if (cmd.hasOption("t")) {
-            config.setAccessToken(UUID.fromString(cmd.getOptionValue("t")));
+            config.setAccessToken(UUID.fromString(cmd.getOptionValue("t"))); // IllegalArgumentException when malformed
         }
         if (cmd.hasOption("p")) {
             config.setProjectName(cmd.getOptionValue("p"));
@@ -160,7 +197,7 @@ public class Cli {
         options.addOption("x", "cmd", true, "Command to execute (start/finish)");
         options.addOption("k", "kind", true, "The run kind. \"test\" or \"security\". Defaults to \"test\"");
         options.addOption("s", "testset", true, "The testset name");
-        options.addOption("at", "alerttool", true, "The alert tool name (ZAP or BURP)");
+        options.addOption("at", "alerttool", true, "The alert tool name (ZAP or BURPSUITE)");
         options.addOption("as", "alertrunstatus", true, "Test Alert run status. \"INTERRUPTED\" or \"COMPLETED\". Defaults to \"COMPLETED\"");
         options.addOption("d", "description", true, "The test run description");
         options.addOption("a", "attributes", true, "Test run attributes");

@@ -15,36 +15,62 @@ import io.orangebeard.client.entity.suite.StartSuite;
 import io.orangebeard.client.entity.suite.Suite;
 import io.orangebeard.client.entity.test.FinishTest;
 import io.orangebeard.client.entity.test.StartTest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.LinkedList;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
+/**
+ * Non-blocking {@link V3Client}. Every call returns a temporary UUID immediately; the actual HTTP requests are
+ * made on a small pool of daemon threads, in dependency order (a test is only started once its suite is started,
+ * and so on). The temporary UUIDs are translated to the ones assigned by Orangebeard as the requests are made.
+ * <p>
+ * A failed request fails everything that depends on it (those requests are skipped), but never blocks the caller
+ * and never prevents the run from being finished.
+ */
 public class OrangebeardAsyncV3Client implements V3Client {
-    private final ConcurrentHashMap<UUID, CompletableFuture<Object>> tasks;
-    private final ConcurrentHashMap<UUID, UUID> uuidMap;
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrangebeardAsyncV3Client.class);
+    private static final int DEFAULT_THREADS = 4;
+    private static final Duration DEFAULT_FINISH_TIMEOUT = Duration.ofMinutes(5);
+    private static final AtomicInteger POOL_COUNTER = new AtomicInteger();
+
+    /** Temporary UUID -> eventual real UUID. */
+    private final ConcurrentHashMap<UUID, CompletableFuture<UUID>> tasks = new ConcurrentHashMap<>();
+    /** Test temporary UUID -> temporary UUIDs of the steps and logs reported under it. */
+    private final ConcurrentHashMap<UUID, Set<UUID>> testChildren = new ConcurrentHashMap<>();
+    /** Requests that have not completed yet. */
+    private final Set<CompletableFuture<?>> pending = ConcurrentHashMap.newKeySet();
+    private final AtomicInteger failures = new AtomicInteger();
     private final OrangebeardV3Client client;
+    private final Executor executor;
+    private final Duration finishTimeout;
 
     public OrangebeardAsyncV3Client(String endpoint, UUID accessToken, String projectName, boolean connectionWithOrangebeardIsValid) {
-        client = new OrangebeardV3Client(endpoint, accessToken, projectName, connectionWithOrangebeardIsValid);
-        tasks = new ConcurrentHashMap<>();
-        uuidMap = new ConcurrentHashMap<>();
+        this(new OrangebeardV3Client(endpoint, accessToken, projectName, connectionWithOrangebeardIsValid), newExecutor(DEFAULT_THREADS), DEFAULT_FINISH_TIMEOUT);
     }
 
     public OrangebeardAsyncV3Client(OrangebeardProperties configuration) {
-        client = new OrangebeardV3Client(configuration.getEndpoint(), configuration.getAccessToken(), configuration.getProjectName(), configuration.requiredValuesArePresent());
-        tasks = new ConcurrentHashMap<>();
-        uuidMap = new ConcurrentHashMap<>();
+        this(new OrangebeardV3Client(configuration.getEndpoint(), configuration.getAccessToken(), configuration.getProjectName(), configuration.requiredValuesArePresent()),
+                newExecutor(DEFAULT_THREADS), DEFAULT_FINISH_TIMEOUT);
 
-        if (configuration.getTestRunUUID() != null) {
-            UUID testRunUUID = configuration.getTestRunUUID();
-            CompletableFuture<Object> startTestRunTask = new CompletableFuture<>();
-            startTestRunTask.complete(testRunUUID);
-            tasks.put(testRunUUID, startTestRunTask);
-            uuidMap.put(testRunUUID, testRunUUID);
+        UUID testRunUUID = configuration.getTestRunUUID();
+        if (testRunUUID != null) {
+            tasks.put(testRunUUID, CompletableFuture.completedFuture(testRunUUID));
         }
     }
 
@@ -52,22 +78,136 @@ public class OrangebeardAsyncV3Client implements V3Client {
         this(new OrangebeardProperties());
     }
 
-    private CompletableFuture<Object> parentTask(UUID taskUUID) {
-        return tasks.get(taskUUID);
+    OrangebeardAsyncV3Client(OrangebeardV3Client client, Executor executor, Duration finishTimeout) {
+        this.client = client;
+        this.executor = executor;
+        this.finishTimeout = finishTimeout;
+    }
+
+    private static Executor newExecutor(int threads) {
+        int poolId = POOL_COUNTER.incrementAndGet();
+        AtomicInteger threadCounter = new AtomicInteger();
+        ThreadFactory factory = runnable -> {
+            Thread thread = new Thread(runnable, "orangebeard-client-" + poolId + "-" + threadCounter.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        };
+        ThreadPoolExecutor pool = new ThreadPoolExecutor(threads, threads, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), factory);
+        pool.allowCoreThreadTimeOut(true);
+        return pool;
+    }
+
+    private static UUID temporaryUUID() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        return new UUID((random.nextLong() & ~0xF000L) | 0x4000L, (random.nextLong() & 0x3FFFFFFFFFFFFFFFL) | 0x8000000000000000L);
+    }
+
+    /** The future of an earlier call; fails when that call is not known (anymore). */
+    private CompletableFuture<UUID> dependency(UUID temporaryUUID) {
+        CompletableFuture<UUID> task = temporaryUUID == null ? null : tasks.get(temporaryUUID);
+        return task != null ? task :
+                CompletableFuture.failedFuture(new IllegalStateException("Unknown Orangebeard item: " + temporaryUUID));
+    }
+
+    private CompletableFuture<UUID> optionalDependency(UUID temporaryUUID) {
+        return temporaryUUID == null ? CompletableFuture.completedFuture(null) : dependency(temporaryUUID);
+    }
+
+    /**
+     * Runs {@code action} on the executor once all dependencies completed, passing their real UUIDs in order.
+     * The action is skipped when a dependency failed.
+     */
+    private CompletableFuture<UUID> afterAll(String description, Function<UUID[], UUID> action, List<CompletableFuture<UUID>> dependencies) {
+        CompletableFuture<UUID> result = CompletableFuture.allOf(dependencies.toArray(new CompletableFuture[0]))
+                .thenApplyAsync(ignored -> {
+                    UUID[] resolved = dependencies.stream().map(CompletableFuture::join).toArray(UUID[]::new);
+                    try {
+                        return action.apply(resolved);
+                    } catch (RuntimeException e) {
+                        reportFailure(description, e);
+                        throw e;
+                    }
+                }, executor);
+        track(result);
+        return result;
+    }
+
+    /** Keeps a dead server from flooding the log: the first failures are warnings, after that every 100th. */
+    private void reportFailure(String description, RuntimeException e) {
+        int count = failures.incrementAndGet();
+        if (count <= 5 || count % 100 == 0) {
+            LOGGER.warn("Orangebeard: {} failed: {} ({} failures so far)", description, e.getMessage(), count);
+        } else {
+            LOGGER.debug("Orangebeard: {} failed: {}", description, e.getMessage());
+        }
+    }
+
+    @SafeVarargs
+    private CompletableFuture<UUID> afterAll(String description, Function<UUID[], UUID> action, CompletableFuture<UUID>... dependencies) {
+        return afterAll(description, action, List.of(dependencies));
+    }
+
+    private CompletableFuture<UUID> async(String description, java.util.function.Supplier<UUID> action) {
+        return afterAll(description, ignored -> action.get(), List.of());
+    }
+
+    private void track(CompletableFuture<?> future) {
+        pending.add(future);
+        future.whenComplete((value, error) -> pending.remove(future));
+    }
+
+    private void register(UUID temporaryUUID, CompletableFuture<UUID> task) {
+        tasks.put(temporaryUUID, task);
+    }
+
+    private void registerUnderTest(UUID test, UUID temporaryUUID, CompletableFuture<UUID> task) {
+        register(temporaryUUID, task);
+        if (test != null) {
+            testChildren.computeIfAbsent(test, key -> ConcurrentHashMap.newKeySet()).add(temporaryUUID);
+        }
+    }
+
+    private void evictChildrenOf(UUID test) {
+        Set<UUID> children = testChildren.remove(test);
+        if (children != null) {
+            children.forEach(tasks::remove);
+        }
+    }
+
+    /** Waits (bounded) for all outstanding requests, whether they succeed or not. */
+    private void awaitPending() {
+        CompletableFuture<?>[] outstanding = pending.stream()
+                .map(future -> future.handle((value, error) -> null))
+                .toArray(CompletableFuture[]::new);
+        try {
+            CompletableFuture.allOf(outstanding).get(finishTimeout.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            LOGGER.warn("Orangebeard: {} requests were still outstanding after {}; finishing anyway.", outstanding.length, finishTimeout);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (java.util.concurrent.ExecutionException e) {
+            LOGGER.debug("Unexpected failure while waiting for outstanding requests", e);
+        }
+    }
+
+    private void clear() {
+        tasks.clear();
+        testChildren.clear();
+    }
+
+    /** Real UUID of a completed call, or null when it is unknown or failed. */
+    private UUID realUUID(UUID temporaryUUID) {
+        CompletableFuture<UUID> task = temporaryUUID == null ? null : tasks.get(temporaryUUID);
+        if (task == null || !task.isDone() || task.isCompletedExceptionally()) {
+            return null;
+        }
+        return task.join();
     }
 
     @Override
     public UUID startTestRun(StartV3TestRun testRun) {
-        UUID temporaryUUID = UUID.randomUUID();
-        CompletableFuture<Object> startTestRunTask = new CompletableFuture<>();
-        tasks.put(temporaryUUID, startTestRunTask);
-
-        CompletableFuture.runAsync(() -> {
-            UUID actualUUID = client.startTestRun(testRun);
-            uuidMap.put(temporaryUUID, actualUUID);
-            startTestRunTask.complete(actualUUID);
-        });
-
+        UUID temporaryUUID = temporaryUUID();
+        register(temporaryUUID, async("start test run", () -> client.startTestRun(testRun)));
         return temporaryUUID;
     }
 
@@ -77,22 +217,22 @@ public class OrangebeardAsyncV3Client implements V3Client {
 
     @Override
     public void startAnnouncedTestRun(UUID testRunUUID) {
-        CompletableFuture<Object> startTestRunTask = new CompletableFuture<>();
-        tasks.put(testRunUUID, startTestRunTask);
-
-        CompletableFuture.runAsync(() -> {
+        register(testRunUUID, async("start announced test run", () -> {
             client.startAnnouncedTestRun(testRunUUID);
-            startTestRunTask.complete(testRunUUID);
-        });
-
-        uuidMap.put(testRunUUID, testRunUUID);
+            return testRunUUID;
+        }));
     }
 
     @Override
     public void finishTestRun(UUID testRunUUID, FinishV3TestRun finishTestRun) {
-        CompletableFuture<Void> allTasks = CompletableFuture.allOf(tasks.values().toArray(new CompletableFuture[0]));
-        allTasks.join(); //await completion of all tasks
-        client.finishTestRun(uuidMap.get(testRunUUID), finishTestRun);
+        awaitPending();
+        UUID realUUID = realUUID(testRunUUID);
+        clear();
+        if (realUUID == null) {
+            LOGGER.warn("Orangebeard: test run {} was not started; not finishing it.", testRunUUID);
+            return;
+        }
+        client.finishTestRun(realUUID, finishTestRun);
     }
 
     public void finishTestRunWithRealUUID(UUID testRunUUID, FinishV3TestRun finishTestRun) {
@@ -101,176 +241,99 @@ public class OrangebeardAsyncV3Client implements V3Client {
 
     @Override
     public List<UUID> startSuite(StartSuite startSuite) {
-        List<UUID> tempUUIDs = startSuite.getSuiteNames().stream().map(
-                suite -> UUID.randomUUID()).collect(Collectors.toCollection(LinkedList::new));
+        int suiteCount = startSuite.getSuiteNames().size();
+        List<UUID> temporaryUUIDs = new ArrayList<>(suiteCount);
 
-        CompletableFuture<Object> parent = startSuite.getParentSuiteUUID() != null ?
-                parentTask(startSuite.getParentSuiteUUID()) :
-                parentTask(startSuite.getTestRunUUID());
+        CompletableFuture<UUID> run = dependency(startSuite.getTestRunUUID());
+        CompletableFuture<UUID> parent = optionalDependency(startSuite.getParentSuiteUUID());
 
-        CompletableFuture<Object> startSuiteTask = new CompletableFuture<>();
-        tempUUIDs.forEach(tempUUID -> tasks.put(tempUUID, startSuiteTask));
-
-        parent.thenCompose(parentUUID -> {
-            StartSuite realStartSuite;
-            UUID testRunUUID;
-            UUID parentSuiteUUID = null;
-            if (startSuite.getParentSuiteUUID() == null) {
-                testRunUUID = (UUID) parentUUID;
-            } else {
-                testRunUUID = uuidMap.get(startSuite.getTestRunUUID());
-                parentSuiteUUID = parentUUID instanceof List ? //If the parent is a suite, a list of uuid's is returned instead of just a uuid.
-                        (UUID) ((List<?>) parentUUID).get(((List<?>) parentUUID).size() - 1) :
-                        (UUID) parentUUID;
-            }
-
-            realStartSuite = new StartSuite(
-                    testRunUUID,
-                    parentSuiteUUID,
+        List<Suite> started = new ArrayList<>();
+        CompletableFuture<UUID> lastSuite = afterAll("start suite", resolved -> {
+            List<Suite> suites = client.startSuite(new StartSuite(
+                    resolved[0],
+                    resolved[1],
                     startSuite.getDescription(),
                     startSuite.getAttributes(),
-                    startSuite.getSuiteNames());
+                    startSuite.getSuiteNames()));
+            synchronized (started) {
+                started.addAll(suites);
+            }
+            return suites.isEmpty() ? null : suites.get(suites.size() - 1).getSuiteUUID();
+        }, run, parent);
 
-            List<Suite> suites = client.startSuite(realStartSuite);
-            List<UUID> actualUUIDs = suites.stream().map(
-                    Suite::getSuiteUUID).toList();
-
-            startSuiteTask.complete(actualUUIDs);
-            return CompletableFuture.supplyAsync(() -> actualUUIDs);
-        });
-        return tempUUIDs;
+        for (int i = 0; i < suiteCount; i++) {
+            UUID temporaryUUID = temporaryUUID();
+            int index = i;
+            // Each suite in the path gets its own UUID; the server returns them in path order.
+            CompletableFuture<UUID> suiteTask = index == suiteCount - 1 ? lastSuite : lastSuite.thenApply(leaf -> {
+                synchronized (started) {
+                    return started.size() == suiteCount ? started.get(index).getSuiteUUID() : leaf;
+                }
+            });
+            register(temporaryUUID, suiteTask);
+            temporaryUUIDs.add(temporaryUUID);
+        }
+        return temporaryUUIDs;
     }
 
     @Override
     public UUID startTest(StartTest startTest) {
-        UUID temporaryUUID = UUID.randomUUID();
-        CompletableFuture<Object> parent = parentTask(startTest.getSuiteUUID());
-        CompletableFuture<Object> startTestTask = new CompletableFuture<>();
-        tasks.put(temporaryUUID, startTestTask);
-
-        parent.thenCompose(parentUUID -> {
-            UUID parentSuiteUUID = (UUID) ((List<?>) parentUUID).get(((List<?>) parentUUID).size() - 1);
-
-            StartTest realStartTest = new StartTest(
-                    uuidMap.get(startTest.getTestRunUUID()),
-                    parentSuiteUUID,
-                    startTest.getTestName(),
-                    startTest.getTestType(),
-                    startTest.getDescription(),
-                    startTest.getAttributes(),
-                    startTest.getStartTime());
-
-            UUID actualUUID = client.startTest(realStartTest);
-            uuidMap.put(temporaryUUID, actualUUID);
-            startTestTask.complete(actualUUID);
-            return CompletableFuture.supplyAsync(() -> actualUUID);
-        });
+        UUID temporaryUUID = temporaryUUID();
+        register(temporaryUUID, afterAll("start test", resolved -> client.startTest(new StartTest(
+                resolved[0],
+                resolved[1],
+                startTest.getTestName(),
+                startTest.getTestType(),
+                startTest.getDescription(),
+                startTest.getAttributes(),
+                startTest.getStartTime())),
+                dependency(startTest.getTestRunUUID()), dependency(startTest.getSuiteUUID())));
         return temporaryUUID;
     }
 
     @Override
     public void finishTest(UUID testUUID, FinishTest finishTest) {
-        CompletableFuture<Object> parent = parentTask(testUUID);
-        CompletableFuture<Object> finishTestTask = new CompletableFuture<>();
-        tasks.put(UUID.randomUUID(), finishTestTask);
-
-        parent.thenCompose(parentUUID -> {
-            FinishTest realFinishTest = new FinishTest(
-                    uuidMap.get(finishTest.getTestRunUUID()),
-                    finishTest.getStatus(),
-                    finishTest.getEndTime());
-            client.finishTest((UUID) parentUUID, realFinishTest);
-            finishTestTask.complete(null);
+        afterAll("finish test", resolved -> {
+            client.finishTest(resolved[1], new FinishTest(resolved[0], finishTest.getStatus(), finishTest.getEndTime()));
             return null;
-        });
+        }, dependency(finishTest.getTestRunUUID()), dependency(testUUID))
+                .whenComplete((value, error) -> evictChildrenOf(testUUID));
     }
 
     @Override
     public UUID startStep(StartStep startStep) {
-        UUID temporaryUUID = UUID.randomUUID();
-        CompletableFuture<Object> parent = startStep.getParentStepUUID() != null ?
-                parentTask(startStep.getParentStepUUID()) :
-                parentTask(startStep.getTestUUID());
-
-        CompletableFuture<Object> startStepTask = new CompletableFuture<>();
-        tasks.put(temporaryUUID, startStepTask);
-
-        parent.thenCompose(parentUUID -> {
-            UUID testUUID;
-            UUID parentStepUUID = null;
-            if (startStep.getParentStepUUID() == null) {
-                testUUID = (UUID) parentUUID;
-            } else {
-                testUUID = uuidMap.get(startStep.getTestUUID());
-                parentStepUUID = (UUID) parentUUID;
-            }
-            StartStep realStartStep = new StartStep(
-                    uuidMap.get(startStep.getTestRunUUID()),
-                    testUUID,
-                    parentStepUUID,
-                    startStep.getStepName(),
-                    startStep.getDescription(),
-                    startStep.getStartTime()
-            );
-            UUID actualUUID = client.startStep(realStartStep);
-            startStepTask.complete(actualUUID);
-            uuidMap.put(temporaryUUID, actualUUID);
-            return CompletableFuture.supplyAsync(() -> actualUUID);
-        });
-
+        UUID temporaryUUID = temporaryUUID();
+        registerUnderTest(startStep.getTestUUID(), temporaryUUID, afterAll("start step", resolved -> client.startStep(new StartStep(
+                resolved[0],
+                resolved[1],
+                resolved[2],
+                startStep.getStepName(),
+                startStep.getDescription(),
+                startStep.getStartTime())),
+                dependency(startStep.getTestRunUUID()), dependency(startStep.getTestUUID()), optionalDependency(startStep.getParentStepUUID())));
         return temporaryUUID;
     }
 
     @Override
     public void finishStep(UUID stepUUID, FinishStep finishStep) {
-        CompletableFuture<Object> parent = parentTask(stepUUID);
-        CompletableFuture<Object> finishStepTask = new CompletableFuture<>();
-        tasks.put(UUID.randomUUID(), finishStepTask);
-
-        parent.thenCompose(parentUUID -> {
-            FinishStep realFinishStep = new FinishStep(
-                    uuidMap.get(finishStep.getTestRunUUID()),
-                    finishStep.getStatus(),
-                    finishStep.getEndTime());
-            client.finishStep((UUID) parentUUID, realFinishStep);
-            finishStepTask.complete(null);
+        afterAll("finish step", resolved -> {
+            client.finishStep(resolved[1], new FinishStep(resolved[0], finishStep.getStatus(), finishStep.getEndTime()));
             return null;
-        });
+        }, dependency(finishStep.getTestRunUUID()), dependency(stepUUID));
     }
 
     @Override
     public UUID log(Log log) {
-        UUID temporaryUUID = UUID.randomUUID();
-        CompletableFuture<Object> parent = log.getStepUUID() != null ?
-                parentTask(log.getStepUUID()) :
-                parentTask(log.getTestUUID());
-
-        CompletableFuture<Object> logTask = new CompletableFuture<>();
-        tasks.put(temporaryUUID, logTask);
-
-        parent.thenCompose(parentUUID -> {
-            UUID testUUID;
-            UUID stepUUID = null;
-            if (log.getStepUUID() == null) {
-                testUUID = (UUID) parentUUID;
-            } else {
-                testUUID = uuidMap.get(log.getTestUUID());
-                stepUUID = (UUID) parentUUID;
-            }
-            Log realLog = new Log(
-                    uuidMap.get(log.getTestRunUUID()),
-                    testUUID,
-                    stepUUID,
-                    log.getMessage(),
-                    log.getLogLevel(),
-                    log.getLogTime(),
-                    log.getLogFormat()
-            );
-            UUID actualUUID = client.log(realLog);
-            logTask.complete(actualUUID);
-            uuidMap.put(temporaryUUID, actualUUID);
-            return CompletableFuture.supplyAsync(() -> actualUUID);
-        });
+        UUID temporaryUUID = temporaryUUID();
+        registerUnderTest(log.getTestUUID(), temporaryUUID, afterAll("log", resolved -> client.log(new Log(
+                resolved[0],
+                resolved[1],
+                resolved[2],
+                log.getMessage(),
+                log.getLogLevel(),
+                log.getLogTime(),
+                log.getLogFormat())),
+                dependency(log.getTestRunUUID()), dependency(log.getTestUUID()), optionalDependency(log.getStepUUID())));
         return temporaryUUID;
     }
 
@@ -286,60 +349,37 @@ public class OrangebeardAsyncV3Client implements V3Client {
 
     @Override
     public UUID sendAttachment(Attachment attachment) {
-        UUID temporaryUUID = UUID.randomUUID();
+        UUID temporaryUUID = temporaryUUID();
         Attachment.AttachmentMetaData meta = attachment.getMetaData();
-        CompletableFuture<Object> parent = parentTask(meta.getLogUUID());
-
-        CompletableFuture<Object> attachmentTask = new CompletableFuture<>();
-        tasks.put(temporaryUUID, attachmentTask);
-
-        parent.thenCompose(logUUID -> {
-            Attachment realAttachment = new Attachment(
-                    attachment.getFile(),
-                    new Attachment.AttachmentMetaData(
-                            uuidMap.get(meta.getTestRunUUID()),
-                            uuidMap.get(meta.getTestUUID()),
-                            meta.getStepUUID() == null ? null : uuidMap.get(meta.getStepUUID()),
-                            (UUID) logUUID,
-                            meta.getAttachmentTime()
-                    )
-            );
-            UUID actualUUID = client.sendAttachment(realAttachment);
-            attachmentTask.complete(actualUUID);
-            uuidMap.put(temporaryUUID, actualUUID);
-            return CompletableFuture.supplyAsync(() -> actualUUID);
-        });
+        registerUnderTest(meta.getTestUUID(), temporaryUUID, afterAll("send attachment", resolved -> client.sendAttachment(new Attachment(
+                attachment.getFile(),
+                new Attachment.AttachmentMetaData(resolved[0], resolved[1], resolved[2], resolved[3], meta.getAttachmentTime()))),
+                dependency(meta.getTestRunUUID()), dependency(meta.getTestUUID()), optionalDependency(meta.getStepUUID()), dependency(meta.getLogUUID())));
         return temporaryUUID;
     }
 
     @Override
     public UUID startAlertRun(StartAlertRun alertRun) {
-        UUID temporaryUUID = UUID.randomUUID();
-        CompletableFuture<Object> startAlertRuntask = new CompletableFuture<>();
-        tasks.put(temporaryUUID, startAlertRuntask);
-
-        CompletableFuture.runAsync(() -> {
-            UUID actualUUID = client.startAlertRun(alertRun);
-            uuidMap.put(temporaryUUID, actualUUID);
-            startAlertRuntask.complete(actualUUID);
-        });
+        UUID temporaryUUID = temporaryUUID();
+        register(temporaryUUID, async("start alert run", () -> client.startAlertRun(alertRun)));
         return temporaryUUID;
     }
 
     //For CLI lifecycle use
     public UUID startAlertRunAndAwaitRealUUID(StartAlertRun alertRun) {
-        UUID alertRunTempUUID = startAlertRun(alertRun);
-        CompletableFuture<Object> startTask = parentTask(alertRunTempUUID);
-        return (UUID) startTask.join();
+        return client.startAlertRun(alertRun);
     }
 
     @Override
     public void finishAlertRun(FinishAlertRun alertRun) {
-        CompletableFuture<Void> allTasks = CompletableFuture.allOf(tasks.values().toArray(new CompletableFuture[0]));
-        allTasks.join(); //await completion of all tasks
-
-        UUID realAlertRunUUID = uuidMap.get(alertRun.getAlertRunUUID());
-        alertRun.setAlertRunUUID(realAlertRunUUID);
+        awaitPending();
+        UUID realUUID = realUUID(alertRun.getAlertRunUUID());
+        clear();
+        if (realUUID == null) {
+            LOGGER.warn("Orangebeard: alert run {} was not started; not finishing it.", alertRun.getAlertRunUUID());
+            return;
+        }
+        alertRun.setAlertRunUUID(realUUID);
         client.finishAlertRun(alertRun);
     }
 
@@ -350,18 +390,11 @@ public class OrangebeardAsyncV3Client implements V3Client {
 
     @Override
     public UUID reportAlert(ReportAlert alert) {
-        UUID temporaryUUID = UUID.randomUUID();
-        CompletableFuture<Object> parent = parentTask(alert.getAlertRunUUID());
-        CompletableFuture<Object> reportAlertTask = new CompletableFuture<>();
-        tasks.put(temporaryUUID, reportAlertTask);
-
-        parent.thenCompose(parentUUID -> {
-            alert.setAlertRunUUID((UUID) parentUUID);
-            UUID actualUUID = client.reportAlert(alert);
-            uuidMap.put(temporaryUUID, actualUUID);
-            reportAlertTask.complete(actualUUID);
-            return CompletableFuture.supplyAsync(() -> actualUUID);
-        });
+        UUID temporaryUUID = temporaryUUID();
+        register(temporaryUUID, afterAll("report alert", resolved -> {
+            alert.setAlertRunUUID(resolved[0]);
+            return client.reportAlert(alert);
+        }, dependency(alert.getAlertRunUUID())));
         return temporaryUUID;
     }
 }
